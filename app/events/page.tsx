@@ -1,0 +1,164 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import EventCard from "@/components/events/event-card"
+import CreateEventDialog from "@/components/events/create-event-dialog"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import Image from "next/image"
+
+interface Event {
+  _id: string
+  title: string
+  description: string
+  date: string
+  time: string
+  location: string
+  category: string
+  attendees: string[]
+  maxAttendees?: number
+  createdAt: string
+}
+
+export default function EventsPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [events, setEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
+  const [registering, setRegistering] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        if (!response.ok) {
+          router.push("/login")
+          return
+        }
+        const userData = await response.json()
+        setUser(userData)
+        await loadEvents()
+      } catch (error) {
+        router.push("/login")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  const loadEvents = async () => {
+    try {
+      const response = await fetch("/api/events?upcoming=true")
+      const data = await response.json()
+      setEvents(data.events || [])
+    } catch (error) {
+      console.error("Failed to load events:", error)
+    }
+  }
+
+  const handleRegister = async (eventId: string) => {
+    if (!user) return
+
+    setRegistering((prev) => ({ ...prev, [eventId]: true }))
+    try {
+      const response = await fetch(`/api/events/${eventId}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user._id }),
+      })
+
+      if (response.ok) {
+        await loadEvents()
+      }
+    } catch (error) {
+      console.error("Failed to register:", error)
+    } finally {
+      setRegistering((prev) => ({ ...prev, [eventId]: false }))
+    }
+  }
+
+  if (loading) {
+    return <div className="p-4">Loading...</div>
+  }
+
+  const upcomingEvents = events.filter((e) => new Date(e.date) > new Date())
+  const categories = ["hackathon", "seminar", "workshop", "meetup"]
+
+  return (
+    <main className="min-h-screen bg-background">
+      <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
+            <h1 className="text-xl font-bold">Buddy Connect</h1>
+          </Link>
+          <div className="flex gap-4">
+            <Link href="/dashboard">
+              <Button variant="ghost">Feed</Button>
+            </Link>
+            <Link href="/projects">
+              <Button variant="ghost">Projects</Button>
+            </Link>
+            <Link href="/hackathon">
+              <Button variant="ghost">Hackathon</Button>
+            </Link>
+            <Button variant="ghost" className="font-semibold">
+              Events
+            </Button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">College Events</h2>
+            <p className="text-muted-foreground">Discover and join events happening at your college</p>
+          </div>
+          {user && <CreateEventDialog userId={user._id} onEventCreated={loadEvents} />}
+        </div>
+
+        {upcomingEvents.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No upcoming events. Check back soon!</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {categories.map((category) => {
+              const categoryEvents = upcomingEvents.filter((e) => e.category === category)
+              if (categoryEvents.length === 0) return null
+
+              return (
+                <div key={category}>
+                  <h3 className="text-xl font-semibold mb-4 capitalize">{category}s</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {categoryEvents.map((event) => (
+                      <EventCard
+                        key={event._id}
+                        id={event._id}
+                        title={event.title}
+                        description={event.description}
+                        date={event.date}
+                        time={event.time}
+                        location={event.location}
+                        category={event.category}
+                        attendees={event.attendees.length}
+                        maxAttendees={event.maxAttendees}
+                        isRegistered={event.attendees.includes(user?._id)}
+                        onRegister={handleRegister}
+                        loading={registering[event._id]}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}

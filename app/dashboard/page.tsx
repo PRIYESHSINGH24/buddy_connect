@@ -1,0 +1,169 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import CreatePost from "@/components/feed/create-post"
+import PostCard from "@/components/feed/post-card"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import Image from "next/image"
+
+interface Post {
+  _id: string
+  author: string
+  authorImage?: string
+  content: string
+  image?: string
+  likes: string[]
+  comments: Array<{ author: string; content: string }>
+  createdAt: string
+}
+
+export default function Dashboard() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        if (!response.ok) {
+          router.push("/login")
+          return
+        }
+        const userData = await response.json()
+        setUser(userData)
+        await loadPosts()
+      } catch (error) {
+        router.push("/login")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  const loadPosts = async () => {
+    try {
+      const response = await fetch("/api/posts")
+      const data = await response.json()
+      setPosts(data.posts || [])
+    } catch (error) {
+      console.error("Failed to load posts:", error)
+    }
+  }
+
+  const handleLike = async (postId: string) => {
+    if (!user) return
+    try {
+      await fetch(`/api/posts/${postId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user._id }),
+      })
+      await loadPosts()
+    } catch (error) {
+      console.error("Failed to like post:", error)
+    }
+  }
+
+  const handleComment = async (postId: string, content: string) => {
+    if (!user) return
+    try {
+      await fetch(`/api/posts/${postId}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          author: user.name,
+          content,
+        }),
+      })
+      await loadPosts()
+    } catch (error) {
+      console.error("Failed to add comment:", error)
+    }
+  }
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      })
+      if (response.ok) {
+        router.push("/login")
+      }
+    } catch (error) {
+      console.error("Logout failed:", error)
+    } finally {
+      setLoggingOut(false)
+    }
+  }
+
+  if (loading) {
+    return <div className="p-4">Loading...</div>
+  }
+
+  return (
+    <main className="min-h-screen bg-background">
+      <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
+            <h1 className="text-xl font-bold">Buddy Connect</h1>
+          </Link>
+          <div className="flex gap-4">
+            <Link href="/projects">
+              <Button variant="ghost">Projects</Button>
+            </Link>
+            <Link href="/hackathon">
+              <Button variant="ghost">Hackathon</Button>
+            </Link>
+            <Link href="/events">
+              <Button variant="ghost">Events</Button>
+            </Link>
+            <Button variant="outline" onClick={handleLogout} disabled={loggingOut}>
+              {loggingOut ? "Logging out..." : "Logout"}
+            </Button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        {user && (
+          <CreatePost userId={user._id} userName={user.name} userImage={user.profileImage} onPostCreated={loadPosts} />
+        )}
+
+        <div className="space-y-6">
+          {posts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>No posts yet. Be the first to share!</p>
+            </div>
+          ) : (
+            posts.map((post) => (
+              <PostCard
+                key={post._id}
+                id={post._id}
+                author={post.author}
+                authorImage={post.authorImage}
+                content={post.content}
+                image={post.image}
+                likes={post.likes.length}
+                comments={post.comments}
+                isLiked={post.likes.includes(user?._id)}
+                onLike={handleLike}
+                onComment={handleComment}
+                userId={user?._id}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </main>
+  )
+}

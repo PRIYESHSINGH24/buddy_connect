@@ -1,0 +1,15 @@
+<svg width="32" height="32" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- CLG in dark navy -->
+  <text x="10" y="70" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#001F3F">CLG</text>
+  
+  <!-- CON in green -->
+  <text x="110" y="70" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#4CAF50">CON</text>
+  
+  <!-- Green arrow line -->
+  <line x1="10" y1="85" x2="190" y2="85" stroke="#4CAF50" stroke-width="4"/>
+  <polygon points="190,85 180,80 180,90" fill="#4CAF50"/>
+  
+  <!-- LinkedIn icon -->
+  <rect x="160" y="20" width="28" height="28" rx="4" fill="#0A66C2"/>
+  <text x="167" y="40" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">in</text>
+</svg>
