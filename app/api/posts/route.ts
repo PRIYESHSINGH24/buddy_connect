@@ -6,7 +6,12 @@ import { ObjectId } from "mongodb"
 export async function GET() {
   try {
     const db = await getDatabase()
-    const posts = await db.collection("posts").find({}).sort({ createdAt: -1 }).limit(50).toArray()
+    const posts = await db
+      .collection("posts")
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .toArray()
 
     return NextResponse.json({ posts }, { status: 200 })
   } catch (error) {
@@ -31,7 +36,7 @@ export async function POST(request: NextRequest) {
       author,
       authorImage,
       content,
-      image,
+      image: image || null, // important fix
       likes: [],
       comments: [],
       createdAt: new Date(),

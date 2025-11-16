@@ -84,7 +84,14 @@ export default function EventsPage() {
     return <div className="p-4">Loading...</div>
   }
 
-  const upcomingEvents = events.filter((e) => new Date(e.date) > new Date())
+  const today = new Date()
+today.setHours(0, 0, 0, 0)
+
+  const upcomingEvents = events.filter((e) => {
+    const eventDate = new Date(e.date)
+    eventDate.setHours(0, 0, 0, 0)
+    return eventDate >= today
+  })
   const categories = ["hackathon", "seminar", "workshop", "meetup"]
 
   return (

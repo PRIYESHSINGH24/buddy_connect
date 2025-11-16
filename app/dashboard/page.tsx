@@ -7,6 +7,13 @@ import PostCard from "@/components/feed/post-card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import UsersTable from "@/components/users/users-table"
+
+interface UserInfo {
+  _id: string
+  name: string
+  profileImage?: string
+}
 
 interface Post {
   _id: string
@@ -23,6 +30,7 @@ export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [posts, setPosts] = useState<Post[]>([])
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -36,7 +44,8 @@ export default function Dashboard() {
         }
         const userData = await response.json()
         setUser(userData)
-        await loadPosts()
+
+        await Promise.all([loadPosts(), loadUsers()])
       } catch (error) {
         router.push("/login")
       } finally {
@@ -54,6 +63,16 @@ export default function Dashboard() {
       setPosts(data.posts || [])
     } catch (error) {
       console.error("Failed to load posts:", error)
+    }
+  }
+
+  const loadUsers = async () => {
+    try {
+      const response = await fetch("/api/users")
+      const data = await response.json()
+      setUsers(data.users || [])
+    } catch (error) {
+      console.error("Failed to load users:", error)
     }
   }
 
@@ -111,12 +130,14 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-background">
+      {/* NAVBAR */}
       <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
             <h1 className="text-xl font-bold">Buddy Connect</h1>
           </Link>
+
           <div className="flex gap-4">
             <Link href="/projects">
               <Button variant="ghost">Projects</Button>
@@ -134,12 +155,20 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {user && (
-          <CreatePost userId={user._id} userName={user.name} userImage={user.profileImage} onPostCreated={loadPosts} />
-        )}
+      {/* TWO COLUMN LAYOUT */}
+      <div className="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[70%_30%] gap-8">
 
-        <div className="space-y-6">
+        {/* LEFT: POST FEED */}
+        <div className="space-y-6 max-w-2xl mx-auto w-full">
+          {user && (
+            <CreatePost
+              userId={user._id}
+              userName={user.name}
+              userImage={user.profileImage}
+              onPostCreated={loadPosts}
+            />
+          )}
+
           {posts.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p>No posts yet. Be the first to share!</p>
@@ -162,6 +191,11 @@ export default function Dashboard() {
               />
             ))
           )}
+        </div>
+
+        {/* RIGHT: USERS TABLE */}
+        <div className="hidden lg:block">
+          <UsersTable users={users} />
         </div>
       </div>
     </main>

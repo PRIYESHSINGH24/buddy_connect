@@ -13,13 +13,20 @@ export async function GET(request: NextRequest) {
       filter.category = searchParams.get("category")
     }
 
-    // Filter upcoming events
+    // Upcoming events filter
     if (searchParams.get("upcoming") === "true") {
-      filter.date = { $gte: new Date() }
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      filter.date = { $gte: today }
     }
 
     const db = await getDatabase()
-    const events = await db.collection("college_events").find(filter).sort({ date: 1 }).limit(100).toArray()
+    const events = await db
+      .collection("college_events")
+      .find(filter)
+      .sort({ date: 1 })
+      .limit(100)
+      .toArray()
 
     return NextResponse.json({ events }, { status: 200 })
   } catch (error) {
@@ -28,6 +35,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Create new event
 // Create new event
 export async function POST(request: NextRequest) {
   try {
@@ -38,11 +46,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // COMBINE date + time into a single Date
+    const eventDateTime = new Date(`${date}T${time || "00:00"}:00`)
+
     const db = await getDatabase()
     const result = await db.collection("college_events").insertOne({
       title,
       description,
-      date: new Date(date),
+      date: eventDateTime,
       time,
       location,
       organizer: new ObjectId(organizer),

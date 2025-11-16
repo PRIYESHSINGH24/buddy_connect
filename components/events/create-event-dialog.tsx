@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,6 +53,13 @@ export default function CreateEventDialog({ userId, onEventCreated }: CreateEven
     e.preventDefault()
     setLoading(true)
 
+    // FIX 1: Validate category – prevent empty category from being submitted
+    if (!formData.category.trim()) {
+      alert("Please select a category")
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch("/api/events", {
         method: "POST",
@@ -98,6 +104,7 @@ export default function CreateEventDialog({ userId, onEventCreated }: CreateEven
           <DialogTitle>Create College Event</DialogTitle>
           <DialogDescription>Organize and promote your college event</DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Event Title</Label>
@@ -150,7 +157,13 @@ export default function CreateEventDialog({ userId, onEventCreated }: CreateEven
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select value={formData.category} onValueChange={(value) => handleSelectChange("category", value)}>
+
+              {/* FIX 2: Add required to Select */}
+              <Select
+                required
+                value={formData.category}
+                onValueChange={(value) => handleSelectChange("category", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -162,6 +175,7 @@ export default function CreateEventDialog({ userId, onEventCreated }: CreateEven
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="maxAttendees">Max Attendees (optional)</Label>
               <Input
