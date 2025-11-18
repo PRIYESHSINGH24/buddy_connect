@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       password,
       name,
-      college,
+      college: (college as string).toUpperCase().trim(),
       department,
       year,
       skills: [],

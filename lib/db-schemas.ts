@@ -5,6 +5,7 @@ export interface User {
   email: string
   password: string // hashed
   name: string
+  username?: string
   college: string
   department: string
   year: string // 1st, 2nd, 3rd, 4th
@@ -12,6 +13,13 @@ export interface User {
   bio: string
   profileImage?: string
   linkedinUrl?: string
+  socials?: {
+    github?: string
+    leetcode?: string
+    codeforces?: string
+    website?: string
+    x?: string
+  }
   interests: string[]
   // Connections: other users this user is connected with
   connections?: ObjectId[]
@@ -19,6 +27,16 @@ export interface User {
   incomingRequests?: ObjectId[]
   // Outgoing connection requests (user ids this user requested)
   outgoingRequests?: ObjectId[]
+  featuredProjectIds?: ObjectId[]
+  endorsements?: Array<{
+    from: ObjectId
+    text: string
+    createdAt: Date
+  }>
+  emailVerified?: boolean
+  verificationToken?: string
+  resetToken?: string
+  resetTokenExpires?: Date
   createdAt: Date
   updatedAt: Date
 }

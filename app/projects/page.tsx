@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import ProjectCard from "@/components/projects/project-card"
 import CreateProjectDialog from "@/components/projects/create-project-dialog"
@@ -27,6 +27,9 @@ export default function ProjectsPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [projects, setProjects] = useState<Project[]>([])
+  const [cursor, setCursor] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState("")
 
@@ -51,11 +54,20 @@ export default function ProjectsPage() {
     checkAuth()
   }, [router])
 
-  const loadProjects = async () => {
+  const loadProjects = async (c?: string | null) => {
     try {
-      const response = await fetch("/api/projects")
+      const params = new URLSearchParams()
+      params.set('limit', '12')
+      if (c) params.set('cursor', c)
+      const response = await fetch(`/api/projects?${params.toString()}`)
       const data = await response.json()
-      setProjects(data.projects || [])
+      if (c) {
+        setProjects((prev)=>[...prev, ...(data.projects || [])])
+      } else {
+        setProjects(data.projects || [])
+      }
+      setCursor(data.nextCursor || null)
+      setHasMore(Boolean(data.nextCursor))
     } catch (error) {
       console.error("Failed to load projects:", error)
     }
@@ -74,6 +86,21 @@ export default function ProjectsPage() {
       console.error("Failed to like project:", error)
     }
   }
+
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore) {
+        setLoadingMore(true)
+        loadProjects(cursor).finally(()=> setLoadingMore(false))
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [cursor, hasMore, loadingMore])
 
   if (loading) {
     return <BeautifulLoader message="Loading projects" />
@@ -129,6 +156,11 @@ export default function ProjectsPage() {
                 onLike={handleLike}
               />
             ))}
+            {/* Sentinel spans full width to trigger load */}
+            <div ref={sentinelRef} className="col-span-full" />
+            {loadingMore && (
+              <div className="col-span-full text-center py-4 text-sm text-muted-foreground">Loading more…</div>
+            )}
           </div>
         )}
       </div>

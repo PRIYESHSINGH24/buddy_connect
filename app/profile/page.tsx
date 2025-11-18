@@ -24,6 +24,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const [myProjects, setMyProjects] = useState<any[]>([])
   const [formData, setFormData] = useState<any>({
     bio: "",
     skills: "",
@@ -35,6 +36,12 @@ export default function ProfilePage() {
     contactPhone: "",
     contactWebsite: "",
     resumeUrl: "",
+    github: "",
+    leetcode: "",
+    codeforces: "",
+    website: "",
+    username: "",
+    featuredProjectIds: [] as string[],
   })
 
   useEffect(() => {
@@ -58,6 +65,12 @@ export default function ProfilePage() {
           contactPhone: userData.contact?.phone || "",
           contactWebsite: userData.contact?.website || "",
           resumeUrl: userData.resumeUrl || "",
+          github: userData.socials?.github || "",
+          leetcode: userData.socials?.leetcode || "",
+          codeforces: userData.socials?.codeforces || "",
+          website: userData.socials?.website || "",
+          username: userData.username || "",
+          featuredProjectIds: (userData.featuredProjectIds || []),
         })
       } catch (error) {
         router.push("/login")
@@ -68,6 +81,22 @@ export default function ProfilePage() {
 
     checkAuth()
   }, [router])
+
+  useEffect(() => {
+    const loadMine = async () => {
+      if (!user?._id) return
+      try {
+        const r = await fetch(`/api/projects?userId=${user._id}&limit=50`)
+        if (r.ok) {
+          const d = await r.json()
+          setMyProjects(d.projects || [])
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    loadMine()
+  }, [user?._id])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData((prev) => ({
@@ -177,6 +206,14 @@ export default function ProfilePage() {
         },
         resumeUrl: (formData as any).resumeUrl || '',
         profileImage: (formData as any).profileImage || user.profileImage || '',
+        socials: {
+          github: (formData as any).github || '',
+          leetcode: (formData as any).leetcode || '',
+          codeforces: (formData as any).codeforces || '',
+          website: (formData as any).website || '',
+        },
+        username: (formData as any).username || '',
+        featuredProjectIds: (formData as any).featuredProjectIds || [],
       }
 
       const response = await fetch('/api/auth/me', {
@@ -332,6 +369,30 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               {editing ? (
                 <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="username">Username (vanity URL)</Label>
+                      <Input id="username" name="username" value={(formData as any).username} onChange={handleChange} placeholder="e.g. priyesh" />
+                      <p className="text-xs text-muted-foreground mt-1">Your public profile: /u/{(formData as any).username || 'username'}</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="website">Website</Label>
+                      <Input id="website" name="website" value={(formData as any).website} onChange={handleChange} placeholder="https://..." />
+                    </div>
+                    <div>
+                      <Label htmlFor="github">GitHub</Label>
+                      <Input id="github" name="github" value={(formData as any).github} onChange={handleChange} placeholder="github.com/username" />
+                    </div>
+                    <div>
+                      <Label htmlFor="leetcode">LeetCode</Label>
+                      <Input id="leetcode" name="leetcode" value={(formData as any).leetcode} onChange={handleChange} placeholder="leetcode.com/u/username" />
+                    </div>
+                    <div>
+                      <Label htmlFor="codeforces">Codeforces</Label>
+                      <Input id="codeforces" name="codeforces" value={(formData as any).codeforces} onChange={handleChange} placeholder="codeforces.com/profile/handle" />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="bio">Bio</Label>
                     <Textarea
@@ -342,6 +403,34 @@ export default function ProfilePage() {
                       onChange={handleChange}
                       className="resize-none h-24"
                     />
+                  </div>
+
+                  {/* Featured projects selector */}
+                  <div className="space-y-2">
+                    <Label>Featured Projects</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-auto p-2 border rounded">
+                      {myProjects.map((p:any)=> {
+                        const checked = (formData as any).featuredProjectIds?.includes(p._id)
+                        return (
+                          <label key={p._id} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e)=> {
+                                setFormData((prev:any)=>{
+                                  const set = new Set(prev.featuredProjectIds || [])
+                                  if (e.target.checked) set.add(p._id)
+                                  else set.delete(p._id)
+                                  return { ...prev, featuredProjectIds: Array.from(set) }
+                                })
+                              }}
+                            />
+                            <span className="truncate">{p.title}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Pick a few projects to feature on your public profile.</p>
                   </div>
 
                   <div className="space-y-2">
@@ -457,6 +546,40 @@ export default function ProfilePage() {
                 </>
               ) : (
                 <>
+                  {(user.username || user.socials) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {user.username && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Public Link</p>
+                          <p className="font-medium">/u/{user.username}</p>
+                        </div>
+                      )}
+                      {user.socials?.website && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Website</p>
+                          <a href={user.socials.website} className="text-primary hover:underline" target="_blank">{user.socials.website}</a>
+                        </div>
+                      )}
+                      {user.socials?.github && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">GitHub</p>
+                          <a href={`https://${user.socials.github.replace(/^https?:\/\//,'')}`} className="text-primary hover:underline" target="_blank">{user.socials.github}</a>
+                        </div>
+                      )}
+                      {user.socials?.leetcode && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">LeetCode</p>
+                          <a href={`https://${user.socials.leetcode.replace(/^https?:\/\//,'')}`} className="text-primary hover:underline" target="_blank">{user.socials.leetcode}</a>
+                        </div>
+                      )}
+                      {user.socials?.codeforces && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Codeforces</p>
+                          <a href={`https://${user.socials.codeforces.replace(/^https?:\/\//,'')}`} className="text-primary hover:underline" target="_blank">{user.socials.codeforces}</a>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {user.bio && (
                     <div>
                       <h3 className="font-semibold mb-2">Bio</h3>

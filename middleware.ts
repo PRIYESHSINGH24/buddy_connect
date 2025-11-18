@@ -6,6 +6,9 @@ const PUBLIC_PATHS: Array<(path: string) => boolean> = [
   // Auth pages
   (p) => p.startsWith("/login"),
   (p) => p.startsWith("/signup"),
+  // Public profiles
+  (p) => p.startsWith("/u/"),
+  (p) => p.startsWith("/users/"),
 
   // Static and Next internals
   (p) => p.startsWith("/_next"),

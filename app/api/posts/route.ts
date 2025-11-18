@@ -3,14 +3,27 @@ import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 // Get all posts
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const limitParam = parseInt(searchParams.get("limit") || "10", 10)
+    const before = searchParams.get("cursor")
+    const limit = Math.min(Math.max(limitParam, 1), 50)
+
     const db = await getDatabase()
+    const query: any = {}
+    if (before) {
+      const beforeDate = new Date(before)
+      if (!isNaN(beforeDate.getTime())) {
+        query.createdAt = { $lt: beforeDate }
+      }
+    }
+
     const posts = await db
       .collection("posts")
-      .find({})
+      .find(query)
       .sort({ createdAt: -1 })
-      .limit(50)
+      .limit(limit)
       .toArray()
 
     // Serialize ObjectId and Date fields so the client receives simple JSON
@@ -29,7 +42,8 @@ export async function GET() {
       updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : null,
     }))
 
-    return NextResponse.json({ posts: serialized }, { status: 200 })
+    const nextCursor = serialized.length > 0 ? serialized[serialized.length - 1].createdAt : null
+    return NextResponse.json({ posts: serialized, nextCursor }, { status: 200 })
   } catch (error) {
     console.error("Get posts error:", error)
     return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 })

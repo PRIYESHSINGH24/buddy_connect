@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import CreatePost from "@/components/feed/create-post"
 import PostCard from "@/components/feed/post-card"
@@ -34,6 +34,9 @@ export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [posts, setPosts] = useState<Post[]>([])
+  const [postCursor, setPostCursor] = useState<string | null>(null)
+  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
+  const [postsHasMore, setPostsHasMore] = useState(true)
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -62,11 +65,20 @@ export default function Dashboard() {
     checkAuth()
   }, [router])
 
-  const loadPosts = async () => {
+  const loadPosts = async (cursor?: string | null) => {
     try {
-      const response = await fetch("/api/posts")
+      const params = new URLSearchParams()
+      params.set('limit', '10')
+      if (cursor) params.set('cursor', cursor)
+      const response = await fetch(`/api/posts?${params.toString()}`)
       const data = await response.json()
-      setPosts(data.posts || [])
+      if (cursor) {
+        setPosts((prev) => [...prev, ...(data.posts || [])])
+      } else {
+        setPosts(data.posts || [])
+      }
+      setPostCursor(data.nextCursor || null)
+      setPostsHasMore(Boolean(data.nextCursor))
     } catch (error) {
       console.error("Failed to load posts:", error)
     }
@@ -125,6 +137,22 @@ export default function Dashboard() {
       console.error("Failed to like post:", error)
     }
   }
+
+  // Infinite scroll for posts
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver((entries) => {
+      const first = entries[0]
+      if (first.isIntersecting && postsHasMore && !postsLoadingMore) {
+        setPostsLoadingMore(true)
+        loadPosts(postCursor).finally(() => setPostsLoadingMore(false))
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [postCursor, postsHasMore, postsLoadingMore])
 
   const handleComment = async (postId: string, content: string) => {
     if (!user) return
@@ -275,6 +303,11 @@ export default function Dashboard() {
                     userId={user?._id}
                   />
                 ))
+              )}
+              {/* Infinite scroll sentinel */}
+              <div ref={sentinelRef} />
+              {postsLoadingMore && (
+                <div className="text-center py-4 text-sm text-muted-foreground">Loading more…</div>
               )}
             </div>
           </div>

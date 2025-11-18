@@ -91,7 +91,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { bio, skills, interests, profileImage, experience, education, projects, certifications, contact, resumeUrl } = body
+    const { bio, skills, interests, profileImage, experience, education, projects, certifications, contact, resumeUrl, socials, featuredProjectIds, username } = body
+
+    // Enforce username uniqueness if changing
+    if (username) {
+      const db = await getDatabase()
+      const existing = await db.collection('users').findOne({ username, _id: { $ne: new (require('mongodb').ObjectId)(userId) } })
+      if (existing) {
+        return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
+      }
+    }
 
     await updateUser(userId, {
       bio,
@@ -104,6 +113,9 @@ export async function PUT(request: NextRequest) {
       certifications,
       contact,
       resumeUrl,
+      socials,
+      featuredProjectIds,
+      username,
     })
 
     const user = await getUserById(userId)
@@ -120,6 +132,9 @@ export async function PUT(request: NextRequest) {
       interests: user?.interests,
       profileImage: user?.profileImage,
       linkedinUrl: user?.linkedinUrl,
+      socials: user?.socials,
+      featuredProjectIds: (user?.featuredProjectIds || []).map((id: any) => id.toString()),
+      username: user?.username,
       connections: (user?.connections || []).map((id: any) => id.toString()),
       incomingRequests: (user?.incomingRequests || []).map((id: any) => id.toString()),
       outgoingRequests: (user?.outgoingRequests || []).map((id: any) => id.toString()),

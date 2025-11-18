@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { Progress } from "@/components/ui/progress"
 
 export default function SignupForm() {
   const router = useRouter()
@@ -26,11 +27,38 @@ export default function SignupForm() {
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: name === "college" ? value.toUpperCase() : value,
     }))
   }
+
+  const passwordStrength = useMemo(() => {
+    const pwd = formData.password || ""
+    let score = 0
+    const hasLower = /[a-z]/.test(pwd)
+    const hasUpper = /[A-Z]/.test(pwd)
+    const hasDigit = /\d/.test(pwd)
+    const hasSymbol = /[^A-Za-z0-9]/.test(pwd)
+    if (pwd.length >= 8) score += 1
+    if (pwd.length >= 12) score += 1
+    if (hasLower) score += 1
+    if (hasUpper) score += 1
+    if (hasDigit) score += 1
+    if (hasSymbol) score += 1
+    const percent = Math.min(100, Math.round((score / 6) * 100))
+    let label = "Weak"
+    let color = "text-red-500"
+    if (score >= 5) {
+      label = "Strong"
+      color = "text-green-500"
+    } else if (score >= 3) {
+      label = "Medium"
+      color = "text-yellow-500"
+    }
+    return { score, percent, label, color }
+  }, [formData.password])
 
   const handleSelectChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -57,7 +85,7 @@ export default function SignupForm() {
           email: formData.email,
           password: formData.password,
           name: formData.name,
-          college: formData.college,
+          college: formData.college.toUpperCase().trim(),
           department: formData.department,
           year: formData.year,
         }),
@@ -170,6 +198,15 @@ export default function SignupForm() {
               onChange={handleChange}
               required
             />
+            <div className="mt-2">
+              <Progress value={passwordStrength.percent} />
+              <div className={`text-xs mt-1 ${passwordStrength.color}`}>
+                Strength: {passwordStrength.label}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-1">
+                Use 12+ characters with a mix of upper/lowercase, numbers, and symbols.
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

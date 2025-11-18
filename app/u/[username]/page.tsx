@@ -1,10 +1,9 @@
 import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
 
-export default async function UserProfilePage({ params }: { params: { id: string } }) {
-  const { id } = params
+export default async function PublicUsernamePage({ params }: { params: { username: string } }) {
+  const { username } = params
   const db = await getDatabase()
-  const user = await db.collection("users").findOne({ _id: new ObjectId(id) }, {
+  const user = await db.collection("users").findOne({ username }, {
     projection: {
       name: 1,
       profileImage: 1,
@@ -13,15 +12,8 @@ export default async function UserProfilePage({ params }: { params: { id: string
       college: 1,
       skills: 1,
       bio: 1,
-      experience: 1,
-      education: 1,
-      projects: 1,
-      certifications: 1,
-      contact: 1,
       socials: 1,
-      username: 1,
       featuredProjectIds: 1,
-      endorsements: 1,
     }
   })
 
@@ -44,25 +36,11 @@ export default async function UserProfilePage({ params }: { params: { id: string
             <div className="w-full h-full flex items-center justify-center text-xl font-bold">{user.name?.charAt(0) || 'U'}</div>
           )}
         </div>
-
         <div>
           <h1 className="text-2xl font-bold">{user.name}</h1>
           <div className="text-sm text-muted-foreground">{user.department} • {user.year} • {user.college}</div>
         </div>
       </div>
-
-      {/* Public link + QR */}
-      {(user.username) && (
-        <section className="mt-4 flex items-center gap-4">
-          <div className="text-sm">Public Profile: <span className="font-medium">/u/{user.username}</span></div>
-          {/* Simple QR using external service to avoid extra deps */}
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`${process.env.NEXT_PUBLIC_APP_URL || ''}/u/${user.username}`)}`}
-            alt="QR to profile"
-            className="w-20 h-20 border rounded"
-          />
-        </section>
-      )}
 
       {user.bio && (
         <section className="mt-6">
@@ -82,7 +60,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </section>
       )}
 
-      {/* Socials */}
       {user.socials && (
         <section className="mt-6">
           <h2 className="font-semibold">Socials</h2>
@@ -95,33 +72,6 @@ export default async function UserProfilePage({ params }: { params: { id: string
         </section>
       )}
 
-      {/* Featured Projects */}
-      {user.featuredProjectIds && user.featuredProjectIds.length > 0 && (
-        <FeaturedProjects ids={user.featuredProjectIds.map((o:any)=>o.toString())} />
-      )}
-
     </main>
-  )
-}
-
-// Server component to render featured projects minimal list
-async function FeaturedProjects({ ids }: { ids: string[] }) {
-  const db = await getDatabase()
-  const objectIds = ids.filter((id)=> ObjectId.isValid(id)).map((id)=> new ObjectId(id))
-  if (objectIds.length === 0) return null
-  const projects = await db.collection("projects").find({ _id: { $in: objectIds } }).project({ title: 1, description: 1, githubUrl: 1 }).toArray()
-  if (projects.length === 0) return null
-  return (
-    <section className="mt-6">
-      <h2 className="font-semibold">Featured Projects</h2>
-      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {projects.map((p:any)=> (
-          <a key={p._id.toString()} href={p.githubUrl} target="_blank" className="block border rounded p-3 hover:bg-accent/30">
-            <div className="font-medium">{p.title}</div>
-            {p.description && <div className="text-sm text-muted-foreground line-clamp-3">{p.description}</div>}
-          </a>
-        ))}
-      </div>
-    </section>
   )
 }
