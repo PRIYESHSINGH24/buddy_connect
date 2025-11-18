@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import LinkedInImportDialog from "@/components/profile/linkedin-import-dialog"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
   const [formData, setFormData] = useState<any>({
     bio: "",
     skills: "",
@@ -196,6 +197,40 @@ export default function ProfilePage() {
     }
   }
 
+  // Quick image update from avatar click (works even when not editing)
+  const onAvatarClick = () => {
+    imageInputRef.current?.click()
+  }
+
+  const onProfileImagePicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = reader.result as string
+      setSaving(true)
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileImage: base64 }),
+        })
+        if (response.ok) {
+          const updated = await response.json()
+          setUser(updated)
+          setFormData((prev: any) => ({ ...prev, profileImage: base64 }))
+        }
+      } catch (err) {
+        console.error('Failed to update profile image', err)
+      } finally {
+        setSaving(false)
+        // reset input so same file can be re-selected later if needed
+        if (imageInputRef.current) imageInputRef.current.value = ''
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   if (loading) {
     return <BeautifulLoader message="Loading profile" />
   }
@@ -210,19 +245,33 @@ export default function ProfilePage() {
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="space-y-6">
+          {/* Hidden input to pick a new profile image */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onProfileImagePicked}
+          />
           {/* Profile Header */}
           <Card className="border-border/50 bg-card/50 backdrop-blur overflow-hidden">
             <div className="h-32 bg-gradient-to-r from-primary to-accent"></div>
             <CardContent className="pt-0">
               <div className="flex flex-col sm:flex-row gap-4 -mt-16 mb-4">
-                <Avatar className="w-32 h-32 border-4 border-background">
+                <div className="relative">
+                  <Avatar
+                    onClick={onAvatarClick}
+                    className="w-32 h-32 border-4 border-background cursor-pointer"
+                    title="Click to change photo"
+                  >
                   {user.profileImage ? (
                     // AvatarImage from ui/avatar is not directly imported; use an img fallback
                     <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full rounded-full" />
                   ) : (
                     <AvatarFallback className="text-lg">{user.name.charAt(0)}</AvatarFallback>
                   )}
-                </Avatar>
+                  </Avatar>
+                </div>
                 <div className="flex-1 pt-8">
                   <h1 className="text-3xl font-bold">{user.name}</h1>
                   <p className="text-muted-foreground">
