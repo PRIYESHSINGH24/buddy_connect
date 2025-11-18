@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import AITeamMatcher from "@/components/hackathon/ai-team-matcher"
 import { Button } from "@/components/ui/button"
+import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,7 +35,7 @@ export default function HackathonPage() {
   }, [router])
 
   if (loading) {
-    return <div className="p-4">Loading...</div>
+    return <BeautifulLoader message="Loading hackathon" />
   }
 
   return (
@@ -52,11 +53,33 @@ export default function HackathonPage() {
             <Link href="/projects">
               <Button variant="ghost">Projects</Button>
             </Link>
+            <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event("toggleMessages"))}>
+              Messages
+            </Button>
+            {/** show profile link if client-side user is available */}
+            {user ? (
+              <Link href="/profile" aria-label="Your profile">
+                {user.profileImage ? (
+                  <div className="w-8 h-8 rounded-full overflow-hidden">
+                    <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">{user.name?.charAt(0) || 'U'}</div>
+                )}
+              </Link>
+            ) : (
+              <Link href="/profile" aria-label="Your profile">
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">U</div>
+              </Link>
+            )}
             <Button variant="ghost" className="font-semibold">
               Hackathon
             </Button>
             <Link href="/events">
               <Button variant="ghost">Events</Button>
+            </Link>
+            <Link href="/jobs">
+              <Button variant="ghost">Jobs</Button>
             </Link>
           </div>
         </div>

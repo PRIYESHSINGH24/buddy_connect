@@ -13,6 +13,12 @@ export interface User {
   profileImage?: string
   linkedinUrl?: string
   interests: string[]
+  // Connections: other users this user is connected with
+  connections?: ObjectId[]
+  // Incoming connection requests (user ids who requested)
+  incomingRequests?: ObjectId[]
+  // Outgoing connection requests (user ids this user requested)
+  outgoingRequests?: ObjectId[]
   createdAt: Date
   updatedAt: Date
 }
@@ -92,5 +98,43 @@ export interface Hackathon {
   prizes: string[]
   organizer: ObjectId
   teams: ObjectId[]
+  createdAt: Date
+}
+
+export interface Company {
+  _id?: ObjectId
+  name: string
+  description?: string
+  website?: string
+  campusVisitDate?: Date
+  recruitersContact?: string
+  createdAt: Date
+}
+
+export interface Job {
+  _id?: ObjectId
+  companyId?: ObjectId
+  companyName: string
+  title: string
+  description: string
+  location?: string
+  employmentType?: string
+  salaryRange?: string
+  hiringBatch?: string
+  applyLink?: string
+  applicants: ObjectId[]
+  createdBy: ObjectId
+  createdAt: Date
+  updatedAt?: Date
+}
+
+export interface Notification {
+  _id?: ObjectId
+  recipient: ObjectId
+  sender?: ObjectId
+  type: string
+  message: string
+  jobId?: ObjectId
+  read?: boolean
   createdAt: Date
 }

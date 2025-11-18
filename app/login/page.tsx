@@ -1,5 +1,7 @@
 import React, { Suspense } from "react"
 import LoginForm from "@/components/auth/login-form"
+import { Spinner } from "@/components/ui/spinner"
+import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -15,7 +17,13 @@ export default function LoginPage() {
 
       <div className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
-          <Suspense fallback={<div className="w-full max-w-md">Loading...</div>}>
+          <Suspense
+            fallback={
+              <div className="w-full max-w-md flex items-center justify-center p-6">
+                <BeautifulLoader message="Preparing login" />
+              </div>
+            }
+          >
             <LoginForm />
           </Suspense>
         </div>

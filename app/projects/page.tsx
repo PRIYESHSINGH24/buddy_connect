@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import ProjectCard from "@/components/projects/project-card"
 import CreateProjectDialog from "@/components/projects/create-project-dialog"
 import { Button } from "@/components/ui/button"
+import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -72,7 +73,7 @@ export default function ProjectsPage() {
   }
 
   if (loading) {
-    return <div className="p-4">Loading...</div>
+    return <BeautifulLoader message="Loading projects" />
   }
 
   return (
@@ -90,11 +91,30 @@ export default function ProjectsPage() {
             <Button variant="ghost" className="font-semibold">
               Projects
             </Button>
+            <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event("toggleMessages"))}>
+              Messages
+            </Button>
+            {user && (
+              <Link href="/profile" aria-label="Your profile">
+                {user.profileImage ? (
+                  <div className="w-8 h-8 rounded-full overflow-hidden">
+                    <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                    {user.name?.charAt(0) || 'U'}
+                  </div>
+                )}
+              </Link>
+            )}
             <Link href="/hackathon">
               <Button variant="ghost">Hackathon</Button>
             </Link>
             <Link href="/events">
               <Button variant="ghost">Events</Button>
+            </Link>
+            <Link href="/jobs">
+              <Button variant="ghost">Jobs</Button>
             </Link>
           </div>
         </div>

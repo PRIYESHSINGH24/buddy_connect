@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import CreatePost from "@/components/feed/create-post"
 import PostCard from "@/components/feed/post-card"
 import { Button } from "@/components/ui/button"
+import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
 import Image from "next/image"
 import UsersTable from "@/components/users/users-table"
@@ -142,7 +143,7 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return <div className="p-4">Loading...</div>
+    return <BeautifulLoader message="Loading your feed" />
   }
 
   return (
@@ -165,6 +166,25 @@ export default function Dashboard() {
             <Link href="/events">
               <Button variant="ghost">Events</Button>
             </Link>
+            <Link href="/jobs">
+              <Button variant="ghost">Jobs</Button>
+            </Link>
+            <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event("toggleMessages"))}>
+              Messages
+            </Button>
+            {user && (
+              <Link href="/profile" aria-label="Your profile">
+                {user.profileImage ? (
+                  <div className="w-8 h-8 rounded-full overflow-hidden">
+                    <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                    {user.name?.charAt(0) || 'U'}
+                  </div>
+                )}
+              </Link>
+            )}
             <Button variant="outline" onClick={handleLogout} disabled={loggingOut}>
               {loggingOut ? "Logging out..." : "Logout"}
             </Button>
@@ -212,7 +232,18 @@ export default function Dashboard() {
 
         {/* RIGHT: USERS TABLE */}
         <div className="hidden lg:block">
-          <UsersTable users={users} />
+          <UsersTable users={users} currentUser={user} onUpdateCurrentUser={async () => {
+            // Refresh current user data
+            try {
+              const r = await fetch('/api/auth/me')
+              if (r.ok) {
+                const data = await r.json()
+                setUser(data)
+              }
+            } catch (err) {
+              console.error(err)
+            }
+          }} />
         </div>
       </div>
     </main>

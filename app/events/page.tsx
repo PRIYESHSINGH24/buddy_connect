@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import EventCard from "@/components/events/event-card"
 import CreateEventDialog from "@/components/events/create-event-dialog"
 import { Button } from "@/components/ui/button"
+import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -90,7 +91,7 @@ export default function EventsPage() {
   }
 
   if (loading) {
-    return <div className="p-4">Loading...</div>
+    return <BeautifulLoader message="Loading events" />
   }
 
   const today = new Date()
@@ -113,7 +114,7 @@ today.setHours(0, 0, 0, 0)
             <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
             <h1 className="text-xl font-bold">Buddy Connect</h1>
           </Link>
-          <div className="flex gap-4">
+           <div className="flex gap-4">
             <Link href="/dashboard">
               <Button variant="ghost">Feed</Button>
             </Link>
@@ -126,6 +127,15 @@ today.setHours(0, 0, 0, 0)
             <Button variant="ghost" className="font-semibold">
               Events
             </Button>
+            <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event("toggleMessages"))}>
+              Messages
+            </Button>
+            <Link href="/profile" aria-label="Your profile">
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">U</div>
+            </Link>
+            <Link href="/jobs">
+              <Button variant="ghost">Jobs</Button>
+            </Link>
           </div>
         </div>
       </nav>
