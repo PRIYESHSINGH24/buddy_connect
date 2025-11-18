@@ -7,8 +7,11 @@ import PostCard from "@/components/feed/post-card"
 import { Button } from "@/components/ui/button"
 import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
-import Image from "next/image"
+import Header from "@/components/header"
 import UsersTable from "@/components/users/users-table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 
 interface UserInfo {
   _id: string
@@ -34,6 +37,8 @@ export default function Dashboard() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [events, setEvents] = useState<any[]>([])
+  const [jobs, setJobs] = useState<any[]>([])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -46,7 +51,7 @@ export default function Dashboard() {
         const userData = await response.json()
         setUser(userData)
 
-        await Promise.all([loadPosts(), loadUsers()])
+        await Promise.all([loadPosts(), loadUsers(), loadEvents(), loadJobs()])
       } catch (error) {
         router.push("/login")
       } finally {
@@ -64,6 +69,28 @@ export default function Dashboard() {
       setPosts(data.posts || [])
     } catch (error) {
       console.error("Failed to load posts:", error)
+    }
+  }
+
+  const loadEvents = async () => {
+    try {
+      const r = await fetch('/api/events')
+      if (!r.ok) return
+      const d = await r.json()
+      setEvents(d.events || [])
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const loadJobs = async () => {
+    try {
+      const r = await fetch('/api/jobs')
+      if (!r.ok) return
+      const d = await r.json()
+      setJobs(d.jobs || [])
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -148,102 +175,141 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
-            <h1 className="text-xl font-bold">Buddy Connect</h1>
-          </Link>
-
-          <div className="flex gap-4">
-            <Link href="/projects">
-              <Button variant="ghost">Projects</Button>
-            </Link>
-            <Link href="/hackathon">
-              <Button variant="ghost">Hackathon</Button>
-            </Link>
-            <Link href="/events">
-              <Button variant="ghost">Events</Button>
-            </Link>
-            <Link href="/jobs">
-              <Button variant="ghost">Jobs</Button>
-            </Link>
-            <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event("toggleMessages"))}>
-              Messages
-            </Button>
-            {user && (
-              <Link href="/profile" aria-label="Your profile">
-                {user.profileImage ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden">
-                    <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full" />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                    {user.name?.charAt(0) || 'U'}
-                  </div>
-                )}
-              </Link>
-            )}
-            <Button variant="outline" onClick={handleLogout} disabled={loggingOut}>
-              {loggingOut ? "Logging out..." : "Logout"}
-            </Button>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       {/* TWO COLUMN LAYOUT */}
-      <div className="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[70%_30%] gap-8">
-
-        {/* LEFT: POST FEED */}
-        <div className="space-y-6 max-w-2xl mx-auto w-full">
-          {user && (
-            <CreatePost
-              userId={user._id}
-              userName={user.name}
-              userImage={user.profileImage}
-              onPostCreated={loadPosts}
-            />
-          )}
-
-          {posts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>No posts yet. Be the first to share!</p>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header / Welcome */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-stretch">
+          <Card className="lg:col-span-2 flex items-center gap-4 p-6">
+            <div>
+              <Avatar className="w-16 h-16">
+                {user?.profileImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full rounded-full" />
+                ) : (
+                  <div className="text-lg">{user?.name?.charAt(0) || 'U'}</div>
+                )}
+              </Avatar>
             </div>
-          ) : (
-            posts.map((post) => (
-              <PostCard
-                key={post._id}
-                id={post._id}
-                author={post.author}
-                authorImage={post.authorImage}
-                content={post.content}
-                image={post.image}
-                likes={post.likes.length}
-                comments={post.comments}
-                isLiked={post.likes.includes(user?._id)}
-                onLike={handleLike}
-                onComment={handleComment}
-                userId={user?._id}
-              />
-            ))
-          )}
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold">Welcome back, {user?.name} 👋</h2>
+              <p className="text-sm text-muted-foreground mt-1">Here's what's happening in your network today.</p>
+              <div className="mt-3 flex gap-2 flex-wrap">
+                <Badge variant="secondary">Connections: {user?.connections?.length || 0}</Badge>
+                <Badge variant="secondary">Posts: {posts.length}</Badge>
+                <Badge variant="secondary">Events: {events.length}</Badge>
+              </div>
+            </div>
+            <div className="self-start">
+              <Button onClick={() => window.scrollTo({ top: 1000, behavior: 'smooth' })}>Go to Feed</Button>
+            </div>
+          </Card>
+
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button onClick={() => window.dispatchEvent(new Event('toggleMessages'))} variant="ghost">Open Messages</Button>
+                <Link href="/events"><Button variant="ghost">View Events</Button></Link>
+                <Link href="/jobs"><Button variant="ghost">View Jobs</Button></Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Upcoming Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {events.slice(0,3).length===0 ? <div className="text-sm text-muted-foreground">No upcoming events</div> : (
+                  <ul className="space-y-2">
+                    {events.slice(0,3).map((ev:any)=> (
+                      <li key={ev._id} className="text-sm">
+                        <Link href={`/events`} className="text-primary hover:underline">{ev.title || ev.name}</Link>
+                        <div className="text-xs text-muted-foreground">{new Date(ev.date || ev.createdAt).toLocaleDateString()}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* RIGHT: USERS TABLE */}
-        <div className="hidden lg:block">
-          <UsersTable users={users} currentUser={user} onUpdateCurrentUser={async () => {
-            // Refresh current user data
-            try {
-              const r = await fetch('/api/auth/me')
-              if (r.ok) {
-                const data = await r.json()
-                setUser(data)
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+          <div>
+            <Card className="mb-6">
+              <CardContent>
+                {user && (
+                  <CreatePost
+                    userId={user._id}
+                    userName={user.name}
+                    userImage={user.profileImage}
+                    onPostCreated={loadPosts}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="space-y-6">
+              {posts.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>No posts yet. Be the first to share!</p>
+                </div>
+              ) : (
+                posts.map((post) => (
+                  <PostCard
+                    key={post._id}
+                    id={post._id}
+                    author={post.author}
+                    authorImage={post.authorImage}
+                    content={post.content}
+                    image={post.image}
+                    likes={post.likes.length}
+                    comments={post.comments}
+                    isLiked={post.likes.includes(user?._id)}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    userId={user?._id}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          <aside className="space-y-6">
+            <UsersTable users={users} currentUser={user} onUpdateCurrentUser={async () => {
+              try {
+                const r = await fetch('/api/auth/me')
+                if (r.ok) {
+                  const data = await r.json()
+                  setUser(data)
+                }
+              } catch (err) {
+                console.error(err)
               }
-            } catch (err) {
-              console.error(err)
-            }
-          }} />
+            }} />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Jobs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {jobs.slice(0,3).length===0 ? <div className="text-sm text-muted-foreground">No jobs posted</div> : (
+                  <ul className="space-y-2">
+                    {jobs.slice(0,3).map((j:any)=> (
+                      <li key={j._id} className="text-sm">
+                        <Link href={`/jobs`} className="text-primary hover:underline">{j.title}</Link>
+                        <div className="text-xs text-muted-foreground">{j.company?.name || j.company}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </aside>
         </div>
       </div>
     </main>

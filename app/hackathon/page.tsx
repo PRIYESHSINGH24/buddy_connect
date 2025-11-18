@@ -6,6 +6,7 @@ import AITeamMatcher from "@/components/hackathon/ai-team-matcher"
 import { Button } from "@/components/ui/button"
 import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
+import Header from "@/components/header"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -40,50 +41,7 @@ export default function HackathonPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
-            <h1 className="text-xl font-bold">Buddy Connect</h1>
-          </Link>
-          <div className="flex gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost">Feed</Button>
-            </Link>
-            <Link href="/projects">
-              <Button variant="ghost">Projects</Button>
-            </Link>
-            <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event("toggleMessages"))}>
-              Messages
-            </Button>
-            {/** show profile link if client-side user is available */}
-            {user ? (
-              <Link href="/profile" aria-label="Your profile">
-                {user.profileImage ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden">
-                    <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full" />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">{user.name?.charAt(0) || 'U'}</div>
-                )}
-              </Link>
-            ) : (
-              <Link href="/profile" aria-label="Your profile">
-                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">U</div>
-              </Link>
-            )}
-            <Button variant="ghost" className="font-semibold">
-              Hackathon
-            </Button>
-            <Link href="/events">
-              <Button variant="ghost">Events</Button>
-            </Link>
-            <Link href="/jobs">
-              <Button variant="ghost">Jobs</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="space-y-6">

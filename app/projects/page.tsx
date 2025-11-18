@@ -4,9 +4,11 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import ProjectCard from "@/components/projects/project-card"
 import CreateProjectDialog from "@/components/projects/create-project-dialog"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
+import Header from "@/components/header"
 import Image from "next/image"
 
 interface Project {
@@ -26,6 +28,7 @@ export default function ProjectsPage() {
   const [user, setUser] = useState<any>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState("")
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -76,63 +79,42 @@ export default function ProjectsPage() {
     return <BeautifulLoader message="Loading projects" />
   }
 
+  const filtered = projects.filter((p) => {
+    if (!query) return true
+    const q = query.toLowerCase()
+    return (
+      (p.title && p.title.toLowerCase().includes(q)) ||
+      (p.description && p.description.toLowerCase().includes(q)) ||
+      (p.technologies && p.technologies.join(" ").toLowerCase().includes(q))
+    )
+  })
+
   return (
     <main className="min-h-screen bg-background">
-      <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
-            <h1 className="text-xl font-bold">Buddy Connect</h1>
-          </Link>
-          <div className="flex gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost">Feed</Button>
-            </Link>
-            <Button variant="ghost" className="font-semibold">
-              Projects
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event("toggleMessages"))}>
-              Messages
-            </Button>
-            {user && (
-              <Link href="/profile" aria-label="Your profile">
-                {user.profileImage ? (
-                  <div className="w-8 h-8 rounded-full overflow-hidden">
-                    <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full" />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                    {user.name?.charAt(0) || 'U'}
-                  </div>
-                )}
-              </Link>
-            )}
-            <Link href="/hackathon">
-              <Button variant="ghost">Hackathon</Button>
-            </Link>
-            <Link href="/events">
-              <Button variant="ghost">Events</Button>
-            </Link>
-            <Link href="/jobs">
-              <Button variant="ghost">Jobs</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Header />
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-bold">Student Projects</h2>
-          {user && <CreateProjectDialog userId={user._id} userName={user.name} onProjectCreated={loadProjects} />}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-3xl font-bold">Student Projects</h2>
+            <p className="text-sm text-muted-foreground">Explore student projects, contribute, and find collaborators.</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block w-64">
+              <Input placeholder="Search projects, techs..." value={query} onChange={(e)=>setQuery(e.target.value)} />
+            </div>
+            {user && <CreateProjectDialog userId={user._id} userName={user.name} onProjectCreated={loadProjects} />}
+          </div>
         </div>
 
-        {projects.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p>No projects yet. Be the first to share yours!</p>
+            <p>No projects match your search. Try a different keyword.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
+            {filtered.map((project) => (
               <ProjectCard
                 key={project._id}
                 id={project._id}
