@@ -79,12 +79,20 @@ export default function Dashboard() {
   const handleLike = async (postId: string) => {
     if (!user) return
     try {
-      await fetch(`/api/posts/${postId}/like`, {
+      const res = await fetch(`/api/posts/${postId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user._id }),
       })
-      await loadPosts()
+      const data = await res.json()
+
+      if (res.ok && data.likes) {
+        // Update the specific post's likes without refetching all posts
+        setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, likes: data.likes } : p)))
+      } else {
+        // Fallback: reload all posts
+        await loadPosts()
+      }
     } catch (error) {
       console.error("Failed to like post:", error)
     }
@@ -93,7 +101,7 @@ export default function Dashboard() {
   const handleComment = async (postId: string, content: string) => {
     if (!user) return
     try {
-      await fetch(`/api/posts/${postId}/comment`, {
+      const res = await fetch(`/api/posts/${postId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -102,7 +110,16 @@ export default function Dashboard() {
           content,
         }),
       })
-      await loadPosts()
+      const data = await res.json()
+
+      if (res.ok && data.comment) {
+        // Append the new comment to the specific post locally
+        setPosts((prev) =>
+          prev.map((p) => (p._id === postId ? { ...p, comments: [...p.comments, data.comment] } : p))
+        )
+      } else {
+        await loadPosts()
+      }
     } catch (error) {
       console.error("Failed to add comment:", error)
     }

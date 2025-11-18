@@ -13,7 +13,23 @@ export async function GET() {
       .limit(50)
       .toArray()
 
-    return NextResponse.json({ posts }, { status: 200 })
+    // Serialize ObjectId and Date fields so the client receives simple JSON
+    const serialized = posts.map((p: any) => ({
+      ...p,
+      _id: p._id?.toString(),
+      userId: p.userId?.toString(),
+      likes: (p.likes || []).map((id: any) => id?.toString()),
+      comments: (p.comments || []).map((c: any) => ({
+        ...c,
+        _id: c._id?.toString(),
+        userId: c.userId?.toString(),
+        createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
+      })),
+      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : null,
+      updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : null,
+    }))
+
+    return NextResponse.json({ posts: serialized }, { status: 200 })
   } catch (error) {
     console.error("Get posts error:", error)
     return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 })

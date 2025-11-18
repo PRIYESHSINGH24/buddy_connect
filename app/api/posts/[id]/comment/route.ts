@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
   try {
     const body = await request.json()
     const { userId, author, content } = body
@@ -12,7 +12,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const db = await getDatabase()
-    const postId = new ObjectId(params.id)
+    const resolvedParams = params && typeof params.then === "function" ? await params : params
+    const postId = new ObjectId(resolvedParams.id)
     const comment = {
       _id: new ObjectId(),
       userId: new ObjectId(userId),
@@ -21,9 +22,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       createdAt: new Date(),
     }
 
-    await db.collection("posts").updateOne({ _id: postId }, { $push: { comments: comment } })
+    // Push the new comment onto the post's comments array
+    await db.collection("posts").updateOne({ _id: postId }, { $push: { comments: comment } as any } as any)
 
-    return NextResponse.json({ message: "Comment added", comment }, { status: 201 })
+    // Return a serialized comment to the client
+    const serialized = {
+      ...comment,
+      _id: comment._id.toString(),
+      userId: comment.userId.toString(),
+      createdAt: comment.createdAt.toISOString(),
+    }
+
+    return NextResponse.json({ message: "Comment added", comment: serialized }, { status: 201 })
   } catch (error) {
     console.error("Comment error:", error)
     return NextResponse.json({ error: "Failed to add comment" }, { status: 500 })
