@@ -65,18 +65,20 @@ export default function UsersTable({
               className="flex items-center gap-3 p-2 rounded-md border border-border/40 bg-background/40"
             >
               <div className="w-10 h-10 rounded-full overflow-hidden bg-muted">
-                <Image
-                  src={u.profileImage || "/placeholder.svg"}
-                  alt={u.name}
-                  width={40}
-                  height={40}
-                  className="object-cover w-full h-full"
-                />
+                <a href={`/users/${u._id}`}>
+                  <Image
+                    src={u.profileImage || "/placeholder.svg"}
+                    alt={u.name}
+                    width={40}
+                    height={40}
+                    className="object-cover w-full h-full"
+                  />
+                </a>
               </div>
 
               <div className="flex-1 flex items-center justify-between">
                 <div className="flex flex-col">
-                  <span className="font-medium">{u.name}</span>
+                  <span className="font-medium"><a href={`/users/${u._id}`}>{u.name}</a></span>
                   <span className="text-xs text-muted-foreground">
                     {u.department || "Dept"} • {u.year || ""}
                   </span>

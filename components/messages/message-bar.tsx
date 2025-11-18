@@ -168,10 +168,12 @@ export default function MessageBar() {
                     className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-background/50 ${selected?._id===u._id?"bg-background/60":""}`}
                     onClick={() => openConversation(u)}
                   >
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
-                      <img src={u.profileImage || '/placeholder.svg'} alt={u.name} className="object-cover w-full h-full" />
-                    </div>
-                    <div className="font-medium">{u.name}</div>
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
+                        <a href={`/users/${u._id}`}>
+                          <img src={u.profileImage || '/placeholder.svg'} alt={u.name} className="object-cover w-full h-full" />
+                        </a>
+                      </div>
+                      <div className="font-medium"><a href={`/users/${u._id}`}>{u.name}</a></div>
                   </div>
                 ))}
               </div>
