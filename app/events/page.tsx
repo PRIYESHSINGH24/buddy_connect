@@ -33,14 +33,16 @@ export default function EventsPage() {
       try {
         const response = await fetch("/api/auth/me")
         if (!response.ok) {
-          router.push("/login")
+          // Don't redirect here; allow public access to events.
+          setLoading(false)
           return
         }
         const userData = await response.json()
         setUser(userData)
         await loadEvents()
       } catch (error) {
-        router.push("/login")
+        // If auth check fails, don't redirect — keep events viewable.
+        console.error("Auth check failed:", error)
       } finally {
         setLoading(false)
       }
@@ -48,6 +50,13 @@ export default function EventsPage() {
 
     checkAuth()
   }, [router])
+
+  // Always load events on mount so events are visible even when the user
+  // is not authenticated. This also avoids hiding events if auth fails.
+  useEffect(() => {
+    loadEvents()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const loadEvents = async () => {
     try {
@@ -92,7 +101,9 @@ today.setHours(0, 0, 0, 0)
     eventDate.setHours(0, 0, 0, 0)
     return eventDate >= today
   })
-  const categories = ["hackathon", "seminar", "workshop", "meetup"]
+  // Derive categories from the fetched events so that any category value
+  // present in the DB will be rendered (handles capitalization/mismatch).
+  const categories = Array.from(new Set(upcomingEvents.map((e) => e.category || "other")))
 
   return (
     <main className="min-h-screen bg-background">
