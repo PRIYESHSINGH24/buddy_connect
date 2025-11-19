@@ -6,6 +6,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function Header() {
   const router = useRouter()
@@ -65,7 +66,8 @@ export default function Header() {
           <h1 className="text-xl font-bold">Buddy Connect</h1>
         </Link>
 
-        <div className="flex gap-4 items-center">
+        {/* Desktop nav */}
+        <div className="hidden md:flex gap-4 items-center">
           <Link href="/dashboard"><Button variant="ghost">Feed</Button></Link>
           <Link href="/projects"><Button variant="ghost">Projects</Button></Link>
           <Link href="/hackathon"><Button variant="ghost">Hackathon</Button></Link>
@@ -80,7 +82,6 @@ export default function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button aria-label="Notifications" className="relative inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-accent transition-colors">
-                  {/* Bell icon */}
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
                     <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -138,6 +139,81 @@ export default function Header() {
           ) : (
             <Link href="/login"><Button variant="outline">Login</Button></Link>
           )}
+        </div>
+
+        {/* Mobile nav */}
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <button aria-label="Open menu" className="inline-flex items-center justify-center w-10 h-10 rounded-md hover:bg-accent">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right" className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Image src="/logo.svg" alt="Buddy Connect" width={28} height={28} />
+                <span className="font-semibold">Buddy Connect</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Link href="/dashboard"><Button variant="ghost" className="justify-start">Feed</Button></Link>
+                <Link href="/projects"><Button variant="ghost" className="justify-start">Projects</Button></Link>
+                <Link href="/hackathon"><Button variant="ghost" className="justify-start">Hackathon</Button></Link>
+                <Link href="/events"><Button variant="ghost" className="justify-start">Events</Button></Link>
+                <Link href="/jobs"><Button variant="ghost" className="justify-start">Jobs</Button></Link>
+                <Button size="sm" variant="ghost" className="justify-start" onClick={() => window.dispatchEvent(new Event('toggleMessages'))}>Messages</Button>
+              </div>
+              {user && (
+                <div className="mt-4">
+                  <div className="text-sm font-medium mb-2">Notifications {unreadCount>0 && (<span className="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground text-[10px]">{unreadCount}</span>)}</div>
+                  <div className="max-h-48 overflow-y-auto border rounded">
+                    {(user.notifications||[]).length===0 ? (
+                      <div className="text-sm text-muted-foreground p-3">No notifications</div>
+                    ) : (
+                      <ul className="divide-y">
+                        {(user.notifications||[]).map((n:any)=> (
+                          <li key={n._id} className="p-3 text-sm flex items-start gap-2">
+                            <div className={`mt-1 w-2 h-2 rounded-full ${n.read ? 'bg-muted' : 'bg-primary'}`} />
+                            <div className="flex-1">
+                              <div>{n.message}</div>
+                              <div className="text-xs text-muted-foreground">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                            </div>
+                            {!n.read && (
+                              <button onClick={() => markRead(n._id)} className="text-xs text-primary">Mark</button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {unreadCount>0 && (
+                    <div className="mt-2"><button onClick={markAllRead} className="text-xs text-primary hover:underline">Mark all read</button></div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-6">
+                {user ? (
+                  <div className="flex items-center justify-between">
+                    <Link href="/profile" className="flex items-center gap-2">
+                      {user.profileImage ? (
+                        <div className="w-8 h-8 rounded-full overflow-hidden">
+                          <img src={user.profileImage} alt={user.name} className="object-cover w-full h-full" />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">{user.name?.charAt(0) || 'U'}</div>
+                      )}
+                      <span className="font-medium">{user.name}</span>
+                    </Link>
+                    <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
+                  </div>
+                ) : (
+                  <Link href="/login"><Button className="w-full">Login</Button></Link>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </nav>

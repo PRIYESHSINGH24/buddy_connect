@@ -148,7 +148,7 @@ export default function MessageBar() {
   return (
     <div>
       {open && (
-        <div className="fixed right-4 top-24 z-50 w-[360px] h-[70vh] bg-card/90 border border-border/50 rounded-md shadow-lg overflow-hidden">
+        <div className="fixed right-2 left-2 md:left-auto md:right-4 top-24 z-50 w-[96vw] md:w-[380px] h-[70vh] bg-card/90 border border-border/50 rounded-md shadow-lg overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-border/30">
             <div className="font-semibold">Messages</div>
             <div>
@@ -158,8 +158,8 @@ export default function MessageBar() {
             </div>
           </div>
 
-          <div className="flex h-[calc(100%-96px)]">
-            <div className="w-1/3 border-r border-border/30 overflow-y-auto">
+          <div className="flex flex-col md:flex-row h-[calc(100%-96px)]">
+            <div className="md:w-1/3 w-full border-b md:border-b-0 md:border-r border-border/30 overflow-y-auto">
               <div className="p-2">
                 {myConnections.length === 0 && <div className="text-sm text-muted-foreground">No connections</div>}
                 {myConnections.map((u) => (
@@ -179,7 +179,7 @@ export default function MessageBar() {
               </div>
             </div>
 
-            <div className="w-2/3 flex flex-col">
+            <div className="md:w-2/3 w-full flex flex-col">
               <div className="flex-1 overflow-y-auto p-3" ref={messagesRef}>
                 {!selected && <div className="text-sm text-muted-foreground">Select a connection to start chatting</div>}
 
