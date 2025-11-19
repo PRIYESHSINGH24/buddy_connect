@@ -12,6 +12,8 @@ import UsersTable from "@/components/users/users-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Sparkles, Users, CalendarDays, Briefcase, Flame } from "lucide-react"
+import DashboardSkeleton from "@/components/dashboard/dashboard-skeleton"
 
 interface UserInfo {
   _id: string
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const [loggingOut, setLoggingOut] = useState(false)
   const [events, setEvents] = useState<any[]>([])
   const [jobs, setJobs] = useState<any[]>([])
+  const [trending, setTrending] = useState<any[]>([])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -54,7 +57,7 @@ export default function Dashboard() {
         const userData = await response.json()
         setUser(userData)
 
-        await Promise.all([loadPosts(), loadUsers(), loadEvents(), loadJobs()])
+        await Promise.all([loadPosts(), loadUsers(), loadEvents(), loadJobs(), loadTrending()])
       } catch (error) {
         router.push("/login")
       } finally {
@@ -81,6 +84,20 @@ export default function Dashboard() {
       setPostsHasMore(Boolean(data.nextCursor))
     } catch (error) {
       console.error("Failed to load posts:", error)
+    }
+  }
+  const loadTrending = async () => {
+    try {
+      const r = await fetch('/api/projects?limit=12')
+      if (!r.ok) return
+      const d = await r.json()
+      const list = (d.projects || [])
+        .map((p: any) => ({...p, likeCount: (p.likes || []).length}))
+        .sort((a: any, b: any) => b.likeCount - a.likeCount)
+        .slice(0, 6)
+      setTrending(list)
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -198,7 +215,12 @@ export default function Dashboard() {
   }
 
   if (loading) {
-    return <BeautifulLoader message="Loading your feed" />
+    return (
+      <main className="min-h-screen bg-background">
+        <Header />
+        <DashboardSkeleton />
+      </main>
+    )
   }
 
   return (
@@ -206,10 +228,10 @@ export default function Dashboard() {
       <Header />
 
       {/* TWO COLUMN LAYOUT */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         {/* Header / Welcome */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-stretch">
-          <Card className="lg:col-span-2 flex items-center gap-4 p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 md:mb-8 items-stretch">
+          <Card className="lg:col-span-2 flex items-center gap-4 p-6 bg-linear-to-br from-primary/5 via-card to-accent/10">
             <div>
               <Avatar className="w-16 h-16">
                 {user?.profileImage ? (
@@ -229,7 +251,7 @@ export default function Dashboard() {
                 <Badge variant="secondary">Events: {events.length}</Badge>
               </div>
             </div>
-            <div className="self-start">
+            <div className="self-start hidden md:block">
               <Button onClick={() => window.scrollTo({ top: 1000, behavior: 'smooth' })}>Go to Feed</Button>
             </div>
           </Card>
@@ -266,6 +288,38 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+          <div className="rounded-lg border border-border/50 bg-card/60 p-4 flex items-center gap-3">
+            <div className="p-2 rounded-md bg-primary/15 text-primary"><Users className="w-5 h-5" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Connections</div>
+              <div className="font-semibold">{user?.connections?.length || 0}</div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-card/60 p-4 flex items-center gap-3">
+            <div className="p-2 rounded-md bg-accent/20 text-accent-foreground"><CalendarDays className="w-5 h-5" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Events</div>
+              <div className="font-semibold">{events.length}</div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-card/60 p-4 flex items-center gap-3">
+            <div className="p-2 rounded-md bg-primary/15 text-primary"><Briefcase className="w-5 h-5" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Jobs</div>
+              <div className="font-semibold">{jobs.length}</div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-border/50 bg-card/60 p-4 flex items-center gap-3">
+            <div className="p-2 rounded-md bg-orange-500/15 text-orange-500"><Sparkles className="w-5 h-5" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Posts</div>
+              <div className="font-semibold">{posts.length}</div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
           <div>
             <Card className="mb-6">
@@ -280,6 +334,25 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Trending Projects */}
+            {trending.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold flex items-center gap-2"><Flame className="w-4 h-4 text-orange-500" /> Trending Projects</h3>
+                  <Link href="/projects" className="text-sm text-primary hover:underline">View all</Link>
+                </div>
+                <div className="flex gap-4 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {trending.map((p:any)=>(
+                    <a key={p._id} href={`/projects`} className="min-w-[220px] rounded-lg border border-border/50 bg-card/60 p-3 hover:border-primary/40 transition">
+                      <div className="font-medium truncate">{p.title}</div>
+                      {p.description && <div className="text-xs text-muted-foreground line-clamp-2 mt-1">{p.description}</div>}
+                      <div className="text-xs mt-2 text-muted-foreground">❤ {(p.likes||[]).length}</div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-6">
               {posts.length === 0 ? (
@@ -301,6 +374,7 @@ export default function Dashboard() {
                     onLike={handleLike}
                     onComment={handleComment}
                     userId={user?._id}
+                    createdAt={post.createdAt}
                   />
                 ))
               )}
@@ -312,8 +386,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <aside className="space-y-6">
-            <UsersTable users={users} currentUser={user} onUpdateCurrentUser={async () => {
+          <aside className="space-y-6 lg:sticky lg:top-24 self-start">
+            <UsersTable users={users} currentUser={user} loading={loading} onUpdateCurrentUser={async () => {
               try {
                 const r = await fetch('/api/auth/me')
                 if (r.ok) {

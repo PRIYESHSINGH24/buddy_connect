@@ -9,6 +9,7 @@ import BeautifulLoader from "@/components/ui/beautiful-loader"
 import Link from "next/link"
 import Header from "@/components/header"
 import Image from "next/image"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Event {
   _id: string
@@ -120,7 +121,13 @@ today.setHours(0, 0, 0, 0)
           {user && <CreateEventDialog userId={user._id} onEventCreated={loadEvents} />}
         </div>
 
-        {upcomingEvents.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <Skeleton key={idx} className="h-64 rounded-2xl" />
+            ))}
+          </div>
+        ) : upcomingEvents.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p>No upcoming events. Check back soon!</p>
           </div>

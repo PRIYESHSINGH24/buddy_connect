@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Heart, MessageCircle, Share2 } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Heart, MessageCircle, Share2, Clock3 } from "lucide-react"
 
 interface PostCardProps {
   id: string
@@ -19,6 +20,7 @@ interface PostCardProps {
   onLike: (postId: string) => void
   onComment: (postId: string, content: string) => void
   userId: string
+  createdAt?: string
 }
 
 export default function PostCard({
@@ -33,10 +35,13 @@ export default function PostCard({
   onLike,
   onComment,
   userId,
+  createdAt,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
   const [commentInput, setCommentInput] = useState("")
   const [isCommentLoading, setIsCommentLoading] = useState(false)
+
+  const formattedTime = createdAt ? new Date(createdAt).toLocaleString() : ""
 
   const handleCommentSubmit = async () => {
     if (!commentInput.trim()) return
@@ -51,7 +56,7 @@ export default function PostCard({
   }
 
   return (
-    <Card className="border-border/50 bg-card/50 backdrop-blur hover:border-primary/30 transition">
+    <Card className="group border border-border/60 bg-card/60 backdrop-blur transition hover:border-primary/40">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -61,7 +66,10 @@ export default function PostCard({
             </Avatar>
             <div>
               <p className="font-semibold text-foreground">{author}</p>
-              <p className="text-xs text-muted-foreground">College Network</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock3 className="w-3 h-3" />
+                {formattedTime || "College Network"}
+              </p>
             </div>
           </div>
         </div>
@@ -69,31 +77,49 @@ export default function PostCard({
       <CardContent className="space-y-4">
         <p className="text-foreground text-pretty">{content}</p>
         {image && (
-          <div className="rounded-lg overflow-hidden bg-muted h-64">
+          <div className="rounded-xl overflow-hidden bg-muted h-64 group-hover:shadow-xl transition">
             <img src={image || "/placeholder.svg"} alt="Post" className="w-full h-full object-cover" />
           </div>
         )}
 
-        <div className="flex items-center gap-6 text-sm text-muted-foreground border-t border-border/30 pt-3">
-          <button onClick={() => onLike(id)} className="flex items-center gap-2 hover:text-primary transition">
-            <Heart className={`w-4 h-4 ${isLiked ? "fill-primary text-primary" : ""}`} />
-            <span>{likes}</span>
-          </button>
-          <button
-            onClick={() => setShowComments(!showComments)}
-            className="flex items-center gap-2 hover:text-primary transition"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>{comments.length}</span>
-          </button>
-          <button className="flex items-center gap-2 hover:text-primary transition">
-            <Share2 className="w-4 h-4" />
-          </button>
-        </div>
+        <TooltipProvider>
+          <div className="flex items-center gap-6 text-sm text-muted-foreground border-t border-border/30 pt-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button onClick={() => onLike(id)} className="flex items-center gap-2 hover:text-primary transition" aria-label="Like post">
+                  <Heart className={`w-4 h-4 ${isLiked ? "fill-primary text-primary" : ""}`} />
+                  <span>{likes}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Like</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setShowComments(!showComments)}
+                  className="flex items-center gap-2 hover:text-primary transition"
+                  aria-label="Show comments"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{comments.length}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Comments</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="flex items-center gap-2 hover:text-primary transition" aria-label="Share post">
+                  <Share2 className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Share</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
 
         {showComments && (
           <div className="space-y-3 border-t border-border/30 pt-4">
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {comments.map((comment, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Avatar className="w-8 h-8">

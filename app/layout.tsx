@@ -5,6 +5,7 @@ import './globals.css'
 import MessageBar from '@/components/messages/message-bar'
 import { ThemeProvider } from '@/components/theme-provider'
 import ThemeToggle from '@/components/ui/theme-toggle'
+import BottomNav from '@/components/ui/bottom-nav'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -33,6 +34,7 @@ export default function RootLayout({
             <MessageBar />
             {children}
             <ThemeToggle />
+            <BottomNav />
           </ThemeProvider>
         <Analytics />
       </body>
