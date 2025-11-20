@@ -216,7 +216,12 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-background">
+      <main className="min-h-screen bg-background relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 opacity-40">
+          <div className="absolute -top-24 -right-10 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+          <div className="absolute top-1/3 -left-20 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
+        </div>
         <Header />
         <DashboardSkeleton />
       </main>
@@ -224,7 +229,12 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 opacity-40">
+        <div className="absolute -top-24 -right-10 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute top-1/3 -left-20 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
+      </div>
       <Header />
 
       {/* TWO COLUMN LAYOUT */}

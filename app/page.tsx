@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import Image from "next/image"
 import { Sparkles, Users, Code2, Rocket } from "lucide-react"
+import BrandMark from "@/components/brand-mark"
 
 export default function Home() {
   const highlights = [
@@ -18,10 +18,7 @@ export default function Home() {
         <div className="absolute bottom-0 left-[-10%] h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
       </div>
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border/50 backdrop-blur-sm">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.svg" alt="Buddy Connect" width={40} height={40} />
-          <h1 className="text-xl font-bold text-foreground">Buddy Connect</h1>
-        </Link>
+        <BrandMark href="/" />
         <div className="flex items-center gap-4">
           <Link href="/login">
             <Button variant="ghost">Login</Button>
