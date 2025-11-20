@@ -27,6 +27,7 @@ interface Post {
   authorImage?: string
   content: string
   image?: string
+  attachments?: Array<{ name: string; type: string; size: number; data: string }>
   likes: string[]
   comments: Array<{ author: string; content: string }>
   createdAt: string
@@ -378,6 +379,7 @@ export default function Dashboard() {
                     authorImage={post.authorImage}
                     content={post.content}
                     image={post.image}
+                    attachments={post.attachments}
                     likes={post.likes.length}
                     comments={post.comments}
                     isLiked={post.likes.includes(user?._id)}

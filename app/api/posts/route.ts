@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         userId: c.userId?.toString(),
         createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
       })),
+      attachments: p.attachments || [],
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : null,
       updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : null,
     }))
@@ -54,11 +55,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, author, authorImage, content, image } = body
+    const { userId, author, authorImage, content, image, attachments } = body
 
     if (!userId || !author || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
+
+    const sanitizedAttachments = Array.isArray(attachments)
+      ? attachments
+          .slice(0, 5)
+          .map((file) => ({
+            name: typeof file.name === "string" ? file.name.slice(0, 255) : "attachment",
+            type: typeof file.type === "string" ? file.type : "application/octet-stream",
+            size: Number.isFinite(file.size) ? Math.min(file.size, 20 * 1024 * 1024) : 0,
+            data: typeof file.data === "string" ? file.data : "",
+          }))
+          .filter((file) => file.data && file.size <= 20 * 1024 * 1024)
+      : []
 
     const db = await getDatabase()
     const result = await db.collection("posts").insertOne({
@@ -67,6 +80,7 @@ export async function POST(request: NextRequest) {
       authorImage,
       content,
       image: image || null, // important fix
+      attachments: sanitizedAttachments,
       likes: [],
       comments: [],
       createdAt: new Date(),

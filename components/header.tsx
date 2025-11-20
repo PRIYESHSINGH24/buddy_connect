@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import BrandMark from "@/components/brand-mark"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function Header() {
@@ -58,10 +58,14 @@ export default function Header() {
     }
   }
 
+  const homeHref = "/"
+
   return (
     <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <BrandMark href="/dashboard" />
+        <Link href={homeHref} className="inline-flex items-center" aria-label="Buddy Connect home">
+          <Image src="/newlogo.png" alt="Buddy Connect" width={56} height={56} priority />
+        </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-4 items-center">
@@ -149,7 +153,9 @@ export default function Header() {
               </button>
             </SheetTrigger>
             <SheetContent side="right" className="p-4">
-              <BrandMark href="/dashboard" showLabel className="mb-4" />
+              <Link href={homeHref} className="inline-flex items-center mb-4" aria-label="Buddy Connect home">
+                <Image src="/newlogo.png" alt="Buddy Connect" width={40} height={40} />
+              </Link>
               <div className="flex flex-col gap-2">
                 <Link href="/dashboard"><Button variant="ghost" className="justify-start">Feed</Button></Link>
                 <Link href="/projects"><Button variant="ghost" className="justify-start">Projects</Button></Link>

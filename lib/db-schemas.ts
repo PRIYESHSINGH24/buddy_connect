@@ -48,10 +48,18 @@ export interface Post {
   authorImage?: string
   content: string
   image?: string
+  attachments?: PostAttachment[]
   likes: ObjectId[]
   comments: Comment[]
   createdAt: Date
   updatedAt: Date
+}
+
+export interface PostAttachment {
+  name: string
+  type: string
+  size: number
+  data: string
 }
 
 export interface Comment {
