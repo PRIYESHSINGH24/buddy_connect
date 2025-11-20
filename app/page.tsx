@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Sparkles, Users, Code2, Rocket } from "lucide-react"
 import BrandMark from "@/components/brand-mark"
+import StatsBar from "@/components/home/stats-bar"
 
 export default function Home() {
   const highlights = [
@@ -18,7 +19,7 @@ export default function Home() {
         <div className="absolute bottom-0 left-[-10%] h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
       </div>
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border/50 backdrop-blur-sm">
-        <BrandMark href="/" />
+        <BrandMark href="/" showLabel={false} />
         <div className="flex items-center gap-4">
           <Link href="/login">
             <Button variant="ghost">Login</Button>
@@ -48,23 +49,9 @@ export default function Home() {
             <Link href="/signup">
               <Button size="lg" className="px-8">Join Buddy Connect</Button>
             </Link>
-            <Link href="/projects">
-              <Button size="lg" variant="outline" className="px-8 bg-background/70">Browse Projects</Button>
-            </Link>
           </div>
-          <div className="flex items-center gap-4 pt-4 border-t border-border/40">
-            <div>
-              <p className="text-2xl font-semibold">8k+</p>
-              <p className="text-xs text-muted-foreground">Projects shared</p>
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">120+</p>
-              <p className="text-xs text-muted-foreground">Campus chapters</p>
-            </div>
-            <div>
-              <p className="text-2xl font-semibold">24/7</p>
-              <p className="text-xs text-muted-foreground">Peer support</p>
-            </div>
+          <div className="pt-4 border-t border-border/40">
+            <StatsBar />
           </div>
         </div>
         <div className="relative">
