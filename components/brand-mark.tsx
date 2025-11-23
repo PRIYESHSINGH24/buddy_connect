@@ -14,7 +14,7 @@ export default function BrandMark({ href = "/dashboard", showLabel = true, class
     <div className={cn("flex items-center gap-3", className)}>
       <div className="relative">
         {useImage ? (
-          <Image src="/newlogo.png" alt="Buddy Connect" width={44} height={44} className="rounded-2xl" />
+          <Image src="/buddy-logo.svg" alt="Buddy Connect" width={44} height={44} className="rounded-2xl" />
         ) : (
           <>
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-primary via-purple-500 to-accent text-base font-semibold text-white shadow-lg shadow-primary/30">

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Home, SquareStack, Zap, CalendarDays, Briefcase, MessageCircle, LogOut } from "lucide-react"
 
 export default function Header() {
   const router = useRouter()
@@ -64,19 +65,19 @@ export default function Header() {
     <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link href={logoHref} className="inline-flex items-center" aria-label="Buddy Connect home">
-          <Image src="/newlogo.png" alt="Buddy Connect" width={56} height={56} priority />
+          <img src="/buddy-logo.svg" alt="Buddy Connect" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
         </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-4 items-center">
-          <Link href="/dashboard"><Button variant="ghost">Feed</Button></Link>
-          <Link href="/projects"><Button variant="ghost">Projects</Button></Link>
-          <Link href="/hackathon"><Button variant="ghost">Hackathon</Button></Link>
-          <Link href="/events"><Button variant="ghost">Events</Button></Link>
-          <Link href="/jobs"><Button variant="ghost">Jobs</Button></Link>
+          <Link href="/dashboard"><Button variant="ghost" className="gap-2"><Home className="w-4 h-4" />Feed</Button></Link>
+          <Link href="/projects"><Button variant="ghost" className="gap-2"><SquareStack className="w-4 h-4" />Projects</Button></Link>
+          <Link href="/hackathon"><Button variant="ghost" className="gap-2"><Zap className="w-4 h-4" />Hackathon</Button></Link>
+          <Link href="/events"><Button variant="ghost" className="gap-2"><CalendarDays className="w-4 h-4" />Events</Button></Link>
+          <Link href="/jobs"><Button variant="ghost" className="gap-2"><Briefcase className="w-4 h-4" />Jobs</Button></Link>
 
-          <Button size="sm" variant="ghost" onClick={() => window.dispatchEvent(new Event('toggleMessages'))}>
-            Messages
+          <Button size="sm" variant="ghost" className="gap-2" onClick={() => window.dispatchEvent(new Event('toggleMessages'))}>
+            <MessageCircle className="w-4 h-4" />Messages
           </Button>
 
           {user && (
@@ -135,7 +136,7 @@ export default function Header() {
                   <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold">{user.name?.charAt(0) || 'U'}</div>
                 )}
               </Link>
-              <Button variant="outline" onClick={handleLogout}>Logout</Button>
+              <Button variant="outline" onClick={handleLogout} className="gap-2"><LogOut className="w-4 h-4" />Logout</Button>
             </>
           ) : (
             <Link href="/login"><Button variant="outline">Login</Button></Link>
@@ -154,15 +155,17 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="p-4">
               <Link href={logoHref} className="inline-flex items-center mb-4" aria-label="Buddy Connect home">
-                <Image src="/newlogo.png" alt="Buddy Connect" width={40} height={40} />
+                <img src="/buddy-logo.svg" alt="Buddy Connect" className="w-10 h-10 object-contain" />
               </Link>
               <div className="flex flex-col gap-2">
-                <Link href="/dashboard"><Button variant="ghost" className="justify-start">Feed</Button></Link>
-                <Link href="/projects"><Button variant="ghost" className="justify-start">Projects</Button></Link>
-                <Link href="/hackathon"><Button variant="ghost" className="justify-start">Hackathon</Button></Link>
-                <Link href="/events"><Button variant="ghost" className="justify-start">Events</Button></Link>
-                <Link href="/jobs"><Button variant="ghost" className="justify-start">Jobs</Button></Link>
-                <Button size="sm" variant="ghost" className="justify-start" onClick={() => window.dispatchEvent(new Event('toggleMessages'))}>Messages</Button>
+                <Link href="/dashboard"><Button variant="ghost" className="justify-start gap-2"><Home className="w-4 h-4" />Feed</Button></Link>
+                <Link href="/projects"><Button variant="ghost" className="justify-start gap-2"><SquareStack className="w-4 h-4" />Projects</Button></Link>
+                <Link href="/hackathon"><Button variant="ghost" className="justify-start gap-2"><Zap className="w-4 h-4" />Hackathon</Button></Link>
+                <Link href="/events"><Button variant="ghost" className="justify-start gap-2"><CalendarDays className="w-4 h-4" />Events</Button></Link>
+                <Link href="/jobs"><Button variant="ghost" className="justify-start gap-2"><Briefcase className="w-4 h-4" />Jobs</Button></Link>
+                <Button size="sm" variant="ghost" className="justify-start gap-2" onClick={() => window.dispatchEvent(new Event('toggleMessages'))}>
+                  <MessageCircle className="w-4 h-4" />Messages
+                </Button>
               </div>
               {user && (
                 <div className="mt-4">
@@ -206,7 +209,7 @@ export default function Header() {
                       )}
                       <span className="font-medium">{user.name}</span>
                     </Link>
-                    <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
+                    <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2"><LogOut className="w-4 h-4" />Logout</Button>
                   </div>
                 ) : (
                   <Link href="/login"><Button className="w-full">Login</Button></Link>

@@ -116,22 +116,22 @@ export default function CreatePost({ userId, userName, userImage, onPostCreated 
   }
 
   return (
-    <Card className="border-border/50 bg-card/50 backdrop-blur mb-6">
-      <CardContent className="p-6">
-        <div className="flex gap-4">
-          <Avatar className="w-10 h-10">
+    <Card className="border-border/50 bg-card/50 backdrop-blur">
+      <CardContent className="p-3 md:p-6">
+        <div className="flex gap-2 md:gap-4">
+          <Avatar className="w-9 h-9 md:w-10 md:h-10 shrink-0">
             <AvatarImage src={userImage || "/placeholder.svg"} alt={userName} />
             <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
           </Avatar>
 
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 space-y-2 md:space-y-3 min-w-0">
 
             {/* Attachments Preview */}
             {attachments.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {attachments.map((file) => (
                   file.type.startsWith("image/") ? (
-                    <div key={file.id} className="relative rounded-lg overflow-hidden bg-muted h-48">
+                    <div key={file.id} className="relative rounded-lg overflow-hidden bg-muted h-40 md:h-48">
                       <img src={file.data} alt={file.name} className="w-full h-full object-cover" />
                       <Button
                         size="icon"
@@ -145,16 +145,16 @@ export default function CreatePost({ userId, userName, userImage, onPostCreated 
                   ) : (
                     <div
                       key={file.id}
-                      className="flex items-center justify-between rounded-lg border border-dashed border-border/50 px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-lg border border-dashed border-border/50 px-2 md:px-3 py-2 text-xs md:text-sm gap-2"
                     >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4" />
-                        <div>
-                          <p className="font-medium leading-none truncate max-w-[220px]">{file.name}</p>
+                      <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                        <FileText className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium leading-none truncate">{file.name}</p>
                           <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
                         </div>
                       </div>
-                      <Button size="icon" variant="ghost" onClick={() => removeAttachment(file.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => removeAttachment(file.id)} className="h-8 w-8 shrink-0">
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
@@ -167,21 +167,22 @@ export default function CreatePost({ userId, userName, userImage, onPostCreated 
               placeholder="What's on your mind?"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="resize-none bg-background/50 min-h-24"
+              className="resize-none bg-background/50 min-h-20 md:min-h-24 text-sm md:text-base"
             />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 md:gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground hover:text-primary"
+                  className="text-xs md:text-sm text-muted-foreground hover:text-primary h-8 md:h-10"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Paperclip className="w-4 h-4 mr-2" />
-                  Add Files
+                  <Paperclip className="w-4 h-4 mr-1 md:mr-2" />
+                  <span className="hidden md:inline">Add Files</span>
+                  <span className="md:hidden">Files</span>
                 </Button>
-                <p className="text-xs text-muted-foreground">Up to {MAX_ATTACHMENTS} files · 20MB each</p>
+                <p className="text-xs text-muted-foreground">Max {MAX_ATTACHMENTS} · 20MB</p>
               </div>
 
               <input
@@ -193,7 +194,7 @@ export default function CreatePost({ userId, userName, userImage, onPostCreated 
                 onChange={handleFileSelect}
               />
 
-              <Button onClick={handleSubmit} disabled={isLoading || !content.trim()}>
+              <Button onClick={handleSubmit} disabled={isLoading || !content.trim()} size="sm" className="text-xs md:text-sm h-8 md:h-10">
                 {isLoading ? "Posting..." : "Post"}
               </Button>
             </div>
