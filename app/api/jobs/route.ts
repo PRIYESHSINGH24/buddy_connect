@@ -19,17 +19,48 @@ async function verifyAuth(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const db = await getDatabase()
-  const jobs = await db.collection("jobs").find({}).sort({ createdAt: -1 }).toArray()
-  const serialized = jobs.map((j: any) => ({
-    ...j,
-    _id: j._id.toString(),
-    companyId: j.companyId?.toString(),
-    applicants: (j.applicants || []).map((a: any) => a.toString()),
-    createdAt: j.createdAt?.toISOString(),
-    updatedAt: j.updatedAt?.toISOString(),
-  }))
-  return NextResponse.json({ jobs: serialized })
+  try {
+    const start = performance.now()
+    const db = await getDatabase()
+    const dbStart = performance.now()
+    const jobs = await db.collection("jobs").find({}, {
+      projection: {
+        companyName: 1,
+        title: 1,
+        description: 1,
+        location: 1,
+        employmentType: 1,
+        salaryRange: 1,
+        hiringBatch: 1,
+        applyLink: 1,
+        applicants: 1,
+        createdBy: 1,
+        createdAt: 1,
+      },
+    }).sort({ createdAt: -1 }).limit(100).toArray()
+    const dbDuration = performance.now() - dbStart
+    
+    const serialized = jobs.map((j: any) => ({
+      ...j,
+      _id: j._id.toString(),
+      companyId: j.companyId?.toString(),
+      applicants: (j.applicants || []).map((a: any) => a.toString()),
+      createdBy: j.createdBy?.toString(),
+      createdAt: j.createdAt?.toISOString(),
+    }))
+    
+    const duration = performance.now() - start
+    console.log(`[GET /api/jobs] ${duration.toFixed(2)}ms (db: ${dbDuration.toFixed(2)}ms), ${serialized.length} jobs`)
+    
+    return NextResponse.json({ jobs: serialized }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+      },
+    })
+  } catch (error) {
+    console.error("Get jobs error:", error)
+    return NextResponse.json({ error: "Failed to fetch jobs" }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {

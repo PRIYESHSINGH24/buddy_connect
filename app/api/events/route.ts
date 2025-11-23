@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb"
 // Get all events
 export async function GET(request: NextRequest) {
   try {
+    const start = performance.now()
     const searchParams = request.nextUrl.searchParams
     const filter: any = {}
 
@@ -21,14 +22,38 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDatabase()
+    const dbStart = performance.now()
     const events = await db
       .collection("college_events")
-      .find(filter)
+      .find(filter, {
+        projection: {
+          title: 1,
+          description: 1,
+          date: 1,
+          time: 1,
+          location: 1,
+          organizer: 1,
+          attendees: 1,
+          category: 1,
+          image: 1,
+          registrationOpen: 1,
+          maxAttendees: 1,
+          createdAt: 1,
+        },
+      })
       .sort({ date: 1 })
       .limit(100)
       .toArray()
+    const dbDuration = performance.now() - dbStart
+    const duration = performance.now() - start
+    console.log(`[GET /api/events] ${duration.toFixed(2)}ms (db: ${dbDuration.toFixed(2)}ms), ${events.length} events`)
 
-    return NextResponse.json({ events }, { status: 200 })
+    return NextResponse.json({ events }, {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+      },
+    })
   } catch (error) {
     console.error("Get events error:", error)
     return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 })

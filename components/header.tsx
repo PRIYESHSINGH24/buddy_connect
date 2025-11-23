@@ -58,12 +58,12 @@ export default function Header() {
     }
   }
 
-  const homeHref = "/"
+  const logoHref = user ? "/dashboard" : "/"
 
   return (
     <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href={homeHref} className="inline-flex items-center" aria-label="Buddy Connect home">
+        <Link href={logoHref} className="inline-flex items-center" aria-label="Buddy Connect home">
           <Image src="/newlogo.png" alt="Buddy Connect" width={56} height={56} priority />
         </Link>
 
@@ -153,7 +153,7 @@ export default function Header() {
               </button>
             </SheetTrigger>
             <SheetContent side="right" className="p-4">
-              <Link href={homeHref} className="inline-flex items-center mb-4" aria-label="Buddy Connect home">
+              <Link href={logoHref} className="inline-flex items-center mb-4" aria-label="Buddy Connect home">
                 <Image src="/newlogo.png" alt="Buddy Connect" width={40} height={40} />
               </Link>
               <div className="flex flex-col gap-2">

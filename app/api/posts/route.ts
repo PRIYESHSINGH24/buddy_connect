@@ -5,6 +5,7 @@ import { ObjectId } from "mongodb"
 // Get all posts
 export async function GET(request: NextRequest) {
   try {
+    const start = performance.now()
     const { searchParams } = new URL(request.url)
     const limitParam = parseInt(searchParams.get("limit") || "10", 10)
     const before = searchParams.get("cursor")
@@ -19,15 +20,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const dbStart = performance.now()
     const posts = await db
       .collection("posts")
-      .find(query)
+      .find(query, {
+        projection: {
+          userId: 1,
+          author: 1,
+          authorImage: 1,
+          content: 1,
+          image: 1,
+          attachments: 1,
+          likes: 1,
+          comments: 1,
+          createdAt: 1,
+        },
+      })
       .sort({ createdAt: -1 })
-      .limit(limit)
+      .limit(limit + 1)
       .toArray()
+    const dbDuration = performance.now() - dbStart
 
     // Serialize ObjectId and Date fields so the client receives simple JSON
-    const serialized = posts.map((p: any) => ({
+    const serialized = posts.slice(0, limit).map((p: any) => ({
       ...p,
       _id: p._id?.toString(),
       userId: p.userId?.toString(),
@@ -40,11 +55,19 @@ export async function GET(request: NextRequest) {
       })),
       attachments: p.attachments || [],
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : null,
-      updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : null,
     }))
 
+    const hasMore = posts.length > limit
     const nextCursor = serialized.length > 0 ? serialized[serialized.length - 1].createdAt : null
-    return NextResponse.json({ posts: serialized, nextCursor }, { status: 200 })
+    const duration = performance.now() - start
+    console.log(`[GET /api/posts] ${duration.toFixed(2)}ms (db: ${dbDuration.toFixed(2)}ms), ${serialized.length} posts`)
+
+    return NextResponse.json({ posts: serialized, nextCursor, hasMore }, {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+      },
+    })
   } catch (error) {
     console.error("Get posts error:", error)
     return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 })

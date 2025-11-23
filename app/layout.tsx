@@ -6,6 +6,10 @@ import MessageBar from '@/components/messages/message-bar'
 import { ThemeProvider } from '@/components/theme-provider'
 import ThemeToggle from '@/components/ui/theme-toggle'
 import BottomNav from '@/components/ui/bottom-nav'
+import { ensureIndexes } from '@/lib/ensure-indexes'
+
+// Ensure DB indexes on app start
+ensureIndexes().catch(err => console.error("Failed to ensure indexes:", err))
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });

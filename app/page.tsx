@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Sparkles, Users, Code2, Rocket } from "lucide-react"
 import BrandMark from "@/components/brand-mark"
 import StatsBar from "@/components/home/stats-bar"
+import HomeGuard from "@/components/home-guard"
 
 export default function Home() {
   const highlights = [
@@ -13,6 +14,7 @@ export default function Home() {
   ]
 
   return (
+    <HomeGuard>
     <main className="min-h-screen bg-background relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0 opacity-40">
         <div className="absolute -top-32 -right-16 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
@@ -95,5 +97,6 @@ export default function Home() {
         ))}
       </section>
     </main>
+    </HomeGuard>
   )
 }

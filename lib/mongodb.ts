@@ -1,10 +1,11 @@
-import { MongoClient, type Db } from "mongodb"
+import { MongoClient, type Db, MongoClientOptions } from "mongodb"
 
 let cachedClient: MongoClient | null = null
 let cachedDb: Db | null = null
 
 export async function connectToDatabase() {
   const MONGODB_URI = process.env.MONGODB_URI
+  const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || "college-linkedin"
 
   if (!MONGODB_URI) {
     throw new Error(
@@ -16,9 +17,14 @@ export async function connectToDatabase() {
     return { client: cachedClient, db: cachedDb }
   }
 
-  const client = new MongoClient(MONGODB_URI)
+  const options: MongoClientOptions = {
+    serverSelectionTimeoutMS: 5000,
+    retryWrites: true,
+    appName: "buddy-connect",
+  }
+  const client = new MongoClient(MONGODB_URI, options)
   await client.connect()
-  const db = client.db("college-linkedin")
+  const db = client.db(MONGODB_DB_NAME)
 
   cachedClient = client
   cachedDb = db
