@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Paperclip, X, FileText } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
 
 interface CreatePostProps {
   userId: string
@@ -46,10 +47,11 @@ export default function CreatePost({ userId, userName, userImage, onPostCreated 
 
     const selected = Array.from(files).slice(0, MAX_ATTACHMENTS - attachments.length)
 
+    let skippedCount = 0
     const processed: AttachmentDraft[] = []
     for (const file of selected) {
       if (file.size > MAX_FILE_SIZE) {
-        alert(`${file.name} is larger than 20MB and was skipped.`)
+        skippedCount++
         continue
       }
 
@@ -64,11 +66,24 @@ export default function CreatePost({ userId, userName, userImage, onPostCreated 
         })
       } catch (error) {
         console.error("Failed to read file", error)
+        skippedCount++
       }
+    }
+
+    if (skippedCount > 0) {
+      toast({
+        title: "Some files were skipped",
+        description: `${skippedCount} file(s) exceeded the 20MB limit.`,
+        variant: "destructive",
+      })
     }
 
     if (processed.length) {
       setAttachments((prev) => [...prev, ...processed])
+      toast({
+        title: `Added ${processed.length} file(s)`,
+        description: `Total attachments: ${attachments.length + processed.length}`,
+      })
     }
     event.target.value = ""
   }
@@ -86,30 +101,72 @@ export default function CreatePost({ userId, userName, userImage, onPostCreated 
   }
 
   const handleSubmit = async () => {
-    if (!content.trim()) return
+    if (!content.trim()) {
+      toast({
+        title: "Empty Post",
+        description: "Please add some content before posting.",
+        variant: "destructive",
+      })
+      return
+    }
 
     setIsLoading(true)
     try {
+      // Instead of sending base64 data, send the files directly
+      const formData = new FormData()
+      formData.append("userId", userId)
+      formData.append("author", userName)
+      formData.append("authorImage", userImage || "")
+      formData.append("content", content)
+      
+      // Add all attachments as File objects (not base64)
+      // We already have base64 data, so we need to convert back to Blob
+      attachments.forEach((file, index) => {
+        // Convert base64 data URL back to Blob
+        const base64Data = file.data
+        const arr = base64Data.split(',')
+        const mime = arr[0].match(/:(.*?);/)?.[1] || file.type
+        const bstr = atob(arr[1])
+        const n = bstr.length
+        const u8arr = new Uint8Array(n)
+        for (let i = 0; i < n; i++) {
+          u8arr[i] = bstr.charCodeAt(i)
+        }
+        
+        const blob = new Blob([u8arr], { type: mime })
+        formData.append(`file_${index}`, blob, file.name)
+      })
+      formData.append("fileCount", attachments.length.toString())
+
       const response = await fetch("/api/posts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          author: userName,
-          authorImage: userImage,
-          content,
-          image: attachments.find((file) => file.type.startsWith("image/"))?.data || null,
-          attachments: attachments.map(({ name, type, size, data }) => ({ name, type, size, data })),
-        }),
+        body: formData,
       })
 
       if (response.ok) {
+        toast({
+          title: "Success!",
+          description: "Your post has been shared.",
+        })
         setContent("")
         setAttachments([])
         onPostCreated()
+      } else {
+        const errorData = await response.json()
+        console.error("Error:", errorData)
+        toast({
+          title: "Failed to post",
+          description: errorData.error || "An error occurred while creating your post.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Failed to create post:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }

@@ -77,8 +77,52 @@ export async function GET(request: NextRequest) {
 // Create new post
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { userId, author, authorImage, content, image, attachments } = body
+    const contentType = request.headers.get("content-type") || ""
+    let body: any = {}
+
+    if (contentType.includes("multipart/form-data")) {
+      try {
+        const formData = await request.formData()
+        body.userId = formData.get("userId")?.toString()
+        body.author = formData.get("author")?.toString()
+        body.authorImage = formData.get("authorImage")?.toString()
+        body.content = formData.get("content")?.toString()
+        
+        const fileCount = parseInt(formData.get("fileCount")?.toString() || "0", 10)
+        const attachments: any[] = []
+        
+        // Process file uploads
+        for (let i = 0; i < fileCount; i++) {
+          const file = formData.get(`file_${i}`)
+          if (file instanceof File) {
+            try {
+              const buffer = await file.arrayBuffer()
+              const base64 = Buffer.from(buffer).toString("base64")
+              const dataUrl = `data:${file.type};base64,${base64}`
+              
+              attachments.push({
+                name: file.name,
+                type: file.type || "application/octet-stream",
+                size: file.size,
+                data: dataUrl,
+              })
+            } catch (fileError) {
+              console.error(`Error processing file ${i}:`, fileError)
+            }
+          }
+        }
+        body.attachments = attachments
+      } catch (parseError) {
+        console.error("FormData parsing error:", parseError)
+        return NextResponse.json({ error: "Failed to parse request body" }, { status: 400 })
+      }
+    } else if (contentType.includes("application/json")) {
+      body = await request.json()
+    } else {
+      body = await request.json()
+    }
+
+    const { userId, author, authorImage, content, attachments } = body
 
     if (!userId || !author || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -102,7 +146,6 @@ export async function POST(request: NextRequest) {
       author,
       authorImage,
       content,
-      image: image || null, // important fix
       attachments: sanitizedAttachments,
       likes: [],
       comments: [],
