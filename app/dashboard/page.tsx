@@ -12,7 +12,7 @@ import UsersTable from "@/components/users/users-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, Users, CalendarDays, Briefcase, Flame } from "lucide-react"
+import { Sparkles, Users, CalendarDays, Briefcase, Flame, Target, TrendingUp, Zap, Award } from "lucide-react"
 import DashboardSkeleton from "@/components/dashboard/dashboard-skeleton"
 
 interface UserInfo {
@@ -255,7 +255,7 @@ export default function Dashboard() {
                 </Avatar>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm md:text-base font-bold text-foreground leading-tight">Welcome back, {user?.name} 👋</h2>
+                <h2 className="text-sm md:text-base font-bold text-foreground leading-tight">Welcome back, {user?.name}</h2>
                 <p className="text-xs text-muted-foreground leading-tight">What's happening in your network.</p>
               </div>
               <Button size="sm" onClick={() => window.scrollTo({ top: 1000, behavior: 'smooth' })} className="bg-linear-to-r from-primary to-accent hover:shadow-lg hover:shadow-primary/30 transition-all font-semibold text-xs shrink-0 h-9">Feed</Button>
@@ -291,9 +291,9 @@ export default function Dashboard() {
             {/* Additional info cards below highlights */}
             <div className="grid grid-cols-2 gap-3">
               {/* Recommended for you */}
-              <Card className="border-border/20 bg-card/40 backdrop-blur hover:border-accent/40 transition-all">
+                  <Card className="border-border/20 bg-card/40 backdrop-blur hover:border-accent/40 transition-all">
                 <CardHeader className="pb-2 px-3 pt-3">
-                  <CardTitle className="text-xs md:text-sm font-semibold">💡 Tip</CardTitle>
+                  <CardTitle className="text-xs md:text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4" /> Quick Tip</CardTitle>
                 </CardHeader>
                 <CardContent className="px-3 pb-3">
                   <p className="text-xs text-muted-foreground leading-relaxed">
@@ -305,7 +305,7 @@ export default function Dashboard() {
               {/* Engagement stats */}
               <Card className="border-border/20 bg-card/40 backdrop-blur hover:border-primary/40 transition-all">
                 <CardHeader className="pb-2 px-3 pt-3">
-                  <CardTitle className="text-xs md:text-sm font-semibold">📊 This Week</CardTitle>
+                  <CardTitle className="text-xs md:text-sm font-semibold flex items-center gap-2"><Award className="w-4 h-4" /> This Week</CardTitle>
                 </CardHeader>
                 <CardContent className="px-3 pb-3">
                   <div className="space-y-1 text-xs">
@@ -326,14 +326,14 @@ export default function Dashboard() {
             <Card className="border-border/20 bg-linear-to-r from-primary/10 via-card/50 to-accent/10 backdrop-blur hover:border-primary/40 transition-all">
               <CardHeader className="pb-3 px-4 pt-4">
                 <CardTitle className="text-sm md:text-base font-bold flex items-center gap-2">
-                  🚀 Featured Opportunities
+                  <Zap className="w-5 h-5" /> Featured Opportunities
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <Link href="/events" className="p-3 rounded-lg border border-accent/30 bg-accent/5 hover:bg-accent/15 hover:border-accent/50 transition-all group">
                     <div className="flex items-start gap-2">
-                      <div className="text-lg">📅</div>
+                      <div className="p-2 rounded bg-accent/15 text-accent"><CalendarDays className="w-4 h-4" /></div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-semibold text-foreground group-hover:text-accent transition-colors">Join Events</h4>
                         <p className="text-xs text-muted-foreground mt-0.5">Meet like-minded professionals</p>
@@ -343,7 +343,7 @@ export default function Dashboard() {
 
                   <Link href="/projects" className="p-3 rounded-lg border border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/15 hover:border-orange-500/50 transition-all group">
                     <div className="flex items-start gap-2">
-                      <div className="text-lg">💼</div>
+                      <div className="p-2 rounded bg-orange-500/15 text-orange-600"><Briefcase className="w-4 h-4" /></div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-semibold text-foreground group-hover:text-orange-600 transition-colors">Explore Projects</h4>
                         <p className="text-xs text-muted-foreground mt-0.5">Collaborate on trending ideas</p>
@@ -353,7 +353,7 @@ export default function Dashboard() {
 
                   <Link href="/profile" className="p-3 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/15 hover:border-primary/50 transition-all group">
                     <div className="flex items-start gap-2">
-                      <div className="text-lg">✨</div>
+                      <div className="p-2 rounded bg-primary/15 text-primary"><Users className="w-4 h-4" /></div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">Grow Your Network</h4>
                         <p className="text-xs text-muted-foreground mt-0.5">Build meaningful connections</p>
@@ -363,7 +363,7 @@ export default function Dashboard() {
 
                   <Link href="/dashboard" className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/15 hover:border-purple-500/50 transition-all group">
                     <div className="flex items-start gap-2">
-                      <div className="text-lg">🎯</div>
+                      <div className="p-2 rounded bg-purple-500/15 text-purple-600"><Target className="w-4 h-4" /></div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs font-semibold text-foreground group-hover:text-purple-600 transition-colors">Get Recommendations</h4>
                         <p className="text-xs text-muted-foreground mt-0.5">Personalized suggestions for you</p>
@@ -415,7 +415,7 @@ export default function Dashboard() {
               <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
                 {events.slice(0,3).length===0 ? (
                   <div className="text-center py-4">
-                    <div className="text-3xl mb-2">📅</div>
+                    <CalendarDays className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
                     <div className="text-xs text-muted-foreground">No events coming up</div>
                     <Link href="/events" className="text-xs text-primary hover:text-accent font-semibold mt-2 inline-block hover:underline">Explore events →</Link>
                   </div>
@@ -428,7 +428,7 @@ export default function Dashboard() {
                           <div className="min-w-0 flex-1">
                             <Link href={`/events`} className="text-primary hover:text-accent font-semibold hover:underline truncate block group-hover:font-bold transition-all">{ev.title || ev.name}</Link>
                             <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              📍 {new Date(ev.date || ev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              <CalendarDays className="w-3 h-3" /> {new Date(ev.date || ev.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </div>
                           </div>
                         </div>
@@ -447,7 +447,7 @@ export default function Dashboard() {
           <Card className="border-border/30 bg-linear-to-br from-primary/5 to-primary/0 backdrop-blur hover:border-primary/40 transition-all hover:shadow-lg">
             <CardHeader className="pb-2 md:pb-3 px-4 md:px-6 pt-4 md:pt-6">
               <CardTitle className="text-sm md:text-base font-bold flex items-center gap-2">
-                📌 Today's Focus
+                <Target className="w-4 h-4" /> Today's Focus
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
@@ -472,7 +472,7 @@ export default function Dashboard() {
           <Card className="border-border/30 bg-linear-to-br from-accent/5 to-accent/0 backdrop-blur hover:border-accent/40 transition-all hover:shadow-lg">
             <CardHeader className="pb-2 md:pb-3 px-4 md:px-6 pt-4 md:pt-6">
               <CardTitle className="text-sm md:text-base font-bold flex items-center gap-2">
-                🔥 Network Activity
+                <TrendingUp className="w-4 h-4" /> Network Activity
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 md:px-6 pb-4 md:pb-6 space-y-2">
@@ -498,7 +498,7 @@ export default function Dashboard() {
           <Card className="border-border/30 bg-linear-to-br from-purple-500/5 to-purple-500/0 backdrop-blur hover:border-purple-500/40 transition-all hover:shadow-lg">
             <CardHeader className="pb-2 md:pb-3 px-4 md:px-6 pt-4 md:pt-6">
               <CardTitle className="text-sm md:text-base font-bold flex items-center gap-2">
-                ⭐ Profile Strength
+                <Award className="w-4 h-4" /> Profile Strength
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 md:px-6 pb-4 md:pb-6 space-y-3">
@@ -577,7 +577,7 @@ export default function Dashboard() {
                     <a key={p._id} href={`/projects`} className="min-w-40 md:min-w-56 rounded-lg border-2 md:border border-orange-500/40 md:border-orange-500/20 bg-linear-to-br from-card/70 md:from-card/60 to-card/90 hover:from-orange-500/20 md:hover:from-orange-500/10 hover:to-card/70 p-3 md:p-4 hover:border-orange-500/60 md:hover:border-orange-500/40 transition-all hover:shadow-lg hover:shadow-orange-500/20 group">
                       <div className="font-bold text-sm md:text-base truncate group-hover:text-orange-500 transition-colors">{p.title}</div>
                       {p.description && <div className="text-xs text-muted-foreground line-clamp-2 mt-1">{p.description}</div>}
-                      <div className="text-xs mt-2 text-muted-foreground font-bold flex items-center gap-1">❤️ <span className="text-orange-600 font-bold">{(p.likes||[]).length}</span></div>
+                      <div className="text-xs mt-2 text-muted-foreground font-bold flex items-center gap-1"><Flame className="w-3 h-3 text-orange-600" /> <span className="text-orange-600 font-bold">{(p.likes||[]).length}</span></div>
                     </a>
                   ))}
                 </div>
@@ -692,7 +692,7 @@ export default function Dashboard() {
               <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
                 {jobs.slice(0,3).length===0 ? (
                   <div className="text-center py-4">
-                    <div className="text-3xl mb-2">💼</div>
+                    <Briefcase className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
                     <div className="text-xs text-muted-foreground">No jobs available</div>
                     <Link href="/projects" className="text-xs text-primary hover:text-accent font-semibold mt-2 inline-block hover:underline">View opportunities →</Link>
                   </div>
