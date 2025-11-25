@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
           authorImage: 1,
           content: 1,
           image: 1,
-          attachments: 1,
           likes: 1,
-          comments: 1,
+          comments: { $slice: 5 }, // Only fetch first 5 comments
           createdAt: 1,
         },
       })
       .sort({ createdAt: -1 })
       .limit(limit + 1)
+      .maxTimeMS(10000) // 10s timeout
       .toArray()
     const dbDuration = performance.now() - dbStart
 
@@ -130,14 +130,14 @@ export async function POST(request: NextRequest) {
 
     const sanitizedAttachments = Array.isArray(attachments)
       ? attachments
-          .slice(0, 5)
+          .slice(0, 3) // Max 3 attachments
           .map((file) => ({
-            name: typeof file.name === "string" ? file.name.slice(0, 255) : "attachment",
+            name: typeof file.name === "string" ? file.name.slice(0, 100) : "attachment",
             type: typeof file.type === "string" ? file.type : "application/octet-stream",
-            size: Number.isFinite(file.size) ? Math.min(file.size, 20 * 1024 * 1024) : 0,
-            data: typeof file.data === "string" ? file.data : "",
+            size: Number.isFinite(file.size) ? Math.min(file.size, 5 * 1024 * 1024) : 0,
+            data: typeof file.data === "string" ? file.data.slice(0, 1000000) : "", // Max 1MB base64
           }))
-          .filter((file) => file.data && file.size <= 20 * 1024 * 1024)
+          .filter((file) => file.data && file.size <= 5 * 1024 * 1024)
       : []
 
     const db = await getDatabase()
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       userId: new ObjectId(userId),
       author,
       authorImage,
-      content,
+      content: content.slice(0, 5000), // Max 5000 chars
       attachments: sanitizedAttachments,
       likes: [],
       comments: [],
