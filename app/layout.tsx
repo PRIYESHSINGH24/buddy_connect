@@ -6,6 +6,7 @@ import MessageBar from '@/components/messages/message-bar'
 import { ThemeProvider } from '@/components/theme-provider'
 import ThemeToggle from '@/components/ui/theme-toggle'
 import BottomNav from '@/components/ui/bottom-nav'
+import AIChatAssistant from '@/components/ai/ai-chat-assistant'
 import { ensureIndexes } from '@/lib/ensure-indexes'
 
 // Ensure DB indexes on app start
@@ -39,6 +40,7 @@ export default function RootLayout({
             {children}
             <ThemeToggle />
             <BottomNav />
+            <AIChatAssistant />
           </ThemeProvider>
         <Analytics />
       </body>

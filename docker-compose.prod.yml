@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Next.js Application (Production)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:3000"
+    environment:
+      # Use MongoDB Atlas for production
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB_NAME=college-linkedin
+      
+      # JWT Secret (set in production)
+      - JWT_SECRET=${JWT_SECRET}
+      
+      # Environment
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    
+    networks:
+      - buddy-network
+    
+    restart: always
+    
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  buddy-network:
+    driver: bridge

@@ -1,0 +1,79 @@
+services:
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    container_name: buddy-connect-app
+    ports:
+      - "3000:3000"
+    environment:
+      # MongoDB Connection (using Docker internal network)
+      - MONGODB_URI=mongodb://${MONGODB_USER:-admin}:${MONGODB_PASSWORD:-admin123}@mongodb:27017/${MONGODB_DB_NAME:-college-linkedin}?authSource=admin&retryWrites=true
+      - MONGODB_DB_NAME=college-linkedin
+      
+      # JWT Secret
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      
+      # Node Environment
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - PORT=3000
+    
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    
+    networks:
+      - buddy-network
+    
+    restart: unless-stopped
+    
+    # Set resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+  # MongoDB Service (for local development)
+  mongodb:
+    image: mongo:latest
+    container_name: buddy-connect-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=college-linkedin
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-admin123}
+    
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    
+    networks:
+      - buddy-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test -u ${MONGODB_USER:-admin} -p ${MONGODB_PASSWORD:-admin123} --authenticationDatabase admin --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+networks:
+  buddy-network:
+    driver: bridge
