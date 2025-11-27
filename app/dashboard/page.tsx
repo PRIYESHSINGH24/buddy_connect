@@ -206,7 +206,7 @@ export default function Dashboard() {
         method: "POST",
       })
       if (response.ok) {
-        router.push("/login")
+        router.push("/")
       }
     } catch (error) {
       console.error("Logout failed:", error)
