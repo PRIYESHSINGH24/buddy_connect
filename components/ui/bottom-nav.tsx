@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, SquareStack, CalendarDays, MessageCircle, User } from "lucide-react"
+import { Home, SquareStack, Zap, MessageCircle, User } from "lucide-react"
 
 export default function BottomNav() {
   const pathname = usePathname()
@@ -12,30 +12,30 @@ export default function BottomNav() {
     return (
       <Link
         href={href}
-        className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 ${
+        className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 px-1 ${
           active ? "text-primary" : "text-muted-foreground"
         }`}
         aria-current={active ? "page" : undefined}
       >
         <Icon className="w-5 h-5" />
-        <span className="text-[11px] leading-none">{label}</span>
+        <span className="text-[10px] leading-tight text-center truncate">{label}</span>
       </Link>
     )
   }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/90 backdrop-blur supports-backdrop-filter:bg-background/60 md:hidden">
-      <div className="mx-auto max-w-md grid grid-cols-5">
+      <div className="mx-auto w-full grid grid-cols-5 gap-0">
         <Item href="/dashboard" label="Feed" icon={Home} />
         <Item href="/projects" label="Projects" icon={SquareStack} />
-        <Item href="/events" label="Events" icon={CalendarDays} />
+        <Item href="/hackathon" label="Hackathon" icon={Zap} />
         <button
           onClick={() => window.dispatchEvent(new Event("toggleMessages"))}
-          className="flex flex-col items-center justify-center gap-1 flex-1 py-2 text-muted-foreground"
+          className="flex flex-col items-center justify-center gap-1 flex-1 py-2 px-1 text-muted-foreground"
           aria-label="Messages"
         >
           <MessageCircle className="w-5 h-5" />
-          <span className="text-[11px] leading-none">Messages</span>
+          <span className="text-[10px] leading-tight text-center truncate">Messages</span>
         </button>
         <Item href="/profile" label="Profile" icon={User} />
       </div>

@@ -122,4 +122,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Add bottom padding on mobile to prevent overlap with bottom nav */
+  body {
+    @apply md:pb-0 pb-20;
+  }
 }

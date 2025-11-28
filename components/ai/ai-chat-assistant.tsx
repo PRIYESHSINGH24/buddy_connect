@@ -95,7 +95,7 @@ export default function AIChatAssistant() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all z-40 group"
+        className="fixed bottom-36 md:bottom-6 right-6 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all z-40 group"
       >
         <Bot className="w-6 h-6 group-hover:scale-110 transition-transform" />
         <span className="absolute -top-12 right-0 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
@@ -106,7 +106,7 @@ export default function AIChatAssistant() {
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-50 flex flex-col bg-linear-to-b from-slate-50 to-white border-0">
+    <Card className="fixed bottom-36 md:bottom-6 right-6 w-96 max-w-[calc(100vw-32px)] h-[500px] shadow-2xl z-50 flex flex-col bg-linear-to-b from-slate-50 to-white border-0 md:max-w-none">
       {/* Header */}
       <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg flex items-center justify-between">
         <div className="flex items-center gap-2">
