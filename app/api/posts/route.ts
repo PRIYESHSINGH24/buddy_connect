@@ -30,6 +30,9 @@ export async function GET(request: NextRequest) {
           authorImage: 1,
           content: 1,
           image: 1,
+          "attachments.name": 1,
+          "attachments.type": 1,
+          "attachments.size": 1,
           likes: 1,
           comments: { $slice: 5 }, // Only fetch first 5 comments
           createdAt: 1,

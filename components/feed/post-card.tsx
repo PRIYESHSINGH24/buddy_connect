@@ -106,11 +106,12 @@ export default function PostCard({
           <div className="space-y-3 md:space-y-5">
             {attachments.map((file, index) => {
               const key = `${file.name}-${index}`
+              const fileUrl = `/api/posts/${id}/attachment/${index}`
               // Images
               if (file.type.startsWith("image/")) {
                 return (
                   <div key={key} className="rounded-lg md:rounded-xl overflow-hidden bg-muted max-h-80 md:max-h-[420px] group-hover:shadow-xl transition">
-                    <img src={file.data} alt={file.name} className="w-full h-full object-cover" />
+                    <img src={fileUrl} alt={file.name} className="w-full h-full object-cover" />
                   </div>
                 )
               }
@@ -122,17 +123,17 @@ export default function PostCard({
                       <div className="flex items-center gap-2 text-xs md:text-sm font-medium min-w-0">
                         <FileText className="w-4 h-4 shrink-0" /> <span className="truncate">{file.name}</span>
                       </div>
-                      <a href={file.data} download={file.name} className="text-xs inline-flex items-center gap-1 text-primary hover:underline whitespace-nowrap">
+                      <a href={fileUrl} download={file.name} className="text-xs inline-flex items-center gap-1 text-primary hover:underline whitespace-nowrap">
                         <Download className="w-3 h-3" /> Download
                       </a>
                     </div>
-                    <PdfViewer data={file.data} />
+                    <PdfViewer data={fileUrl} />
                   </div>
                 )
               }
               // Videos
               if (file.type.startsWith("video/")) {
-                return <VideoAttachment key={key} file={file} />
+                return <VideoAttachment key={key} file={file} fileUrl={fileUrl} />
               }
               // Fallback generic file
               return (
@@ -148,7 +149,7 @@ export default function PostCard({
                     </div>
                   </div>
                   <a
-                    href={file.data}
+                    href={fileUrl}
                     download={file.name}
                     className="inline-flex items-center gap-1 text-xs md:text-sm text-primary hover:underline shrink-0"
                   >
@@ -262,10 +263,11 @@ export default function PostCard({
 }
 
 interface VideoAttachmentProps {
-  file: { name: string; type: string; size: number; data: string }
+  file: { name: string; type: string; size: number; data?: string }
+  fileUrl: string
 }
 
-function VideoAttachment({ file }: VideoAttachmentProps) {
+function VideoAttachment({ file, fileUrl }: VideoAttachmentProps) {
   const { ref, inView } = useInView({ threshold: 0.4 })
   return (
     <div ref={ref} className="space-y-2">
@@ -273,12 +275,12 @@ function VideoAttachment({ file }: VideoAttachmentProps) {
         <div className="flex items-center gap-2 text-xs md:text-sm font-medium min-w-0">
           <Play className="w-4 h-4 shrink-0" /> <span className="truncate">{file.name}</span>
         </div>
-        <a href={file.data} download={file.name} className="text-xs inline-flex items-center gap-1 text-primary hover:underline whitespace-nowrap">
+        <a href={fileUrl} download={file.name} className="text-xs inline-flex items-center gap-1 text-primary hover:underline whitespace-nowrap">
           <Download className="w-3 h-3" /> Download
         </a>
       </div>
       <video
-        src={file.data}
+        src={fileUrl}
         controls
         playsInline
         muted
