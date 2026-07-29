@@ -10,7 +10,7 @@ RUN npm install -g pnpm@9 --no-audit --no-fund
 COPY package.json pnpm-lock.yaml* ./
 
 # Install all dependencies (including dev) for building
-RUN pnpm install --shamefully-hoist 2>&1
+RUN pnpm install --shamefully-hoist --ignore-scripts 2>&1
 
 # Copy application code
 COPY . .
@@ -33,7 +33,7 @@ RUN npm install -g pnpm@9 --no-audit --no-fund
 COPY package.json pnpm-lock.yaml* ./
 
 # Install production dependencies only
-RUN pnpm install --prod --shamefully-hoist 2>&1
+RUN pnpm install --prod --shamefully-hoist --ignore-scripts 2>&1
 
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
