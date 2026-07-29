@@ -1,22 +1,6 @@
 import { NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
-import { jwtVerify } from "jose"
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key")
-
-async function verifyAuth(request: Request) {
-  try {
-    // NextRequest cookies not available here so read from headers cookie
-    const cookie = request.headers.get("cookie") || ""
-    const match = cookie.match(/auth_token=([^;]+)/)
-    const token = match ? match[1] : null
-    if (!token) return null
-    const decoded = await jwtVerify(token, JWT_SECRET)
-    return decoded.payload.userId as string
-  } catch (err) {
-    return null
-  }
-}
+import { verifyAuth } from "@/lib/auth"
 
 export async function GET(request: Request) {
   try {
@@ -169,11 +153,13 @@ export async function POST(request: Request) {
     })
 
     const job = await db.collection("jobs").findOne({ _id: result.insertedId })
+    if (!job) return NextResponse.json({ error: "Failed to fetch created job" }, { status: 500 })
+
     const serialized = {
       ...job,
       _id: job._id.toString(),
-      createdAt: job.createdAt.toISOString(),
-      updatedAt: job.updatedAt.toISOString(),
+      createdAt: job.createdAt?.toISOString(),
+      updatedAt: job.updatedAt?.toISOString(),
       applicants: [],
     }
 

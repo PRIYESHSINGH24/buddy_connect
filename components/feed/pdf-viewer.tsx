@@ -16,7 +16,7 @@ interface PdfViewerProps {
 }
 
 export default function PdfViewer({ data, maxPages = 25 }: PdfViewerProps) {
-  const { ref, inView } = useInView({ threshold: 0.1, once: true });
+  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.1, once: true });
   const [pages, setPages] = useState<string[]>([]); // store page data URLs
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

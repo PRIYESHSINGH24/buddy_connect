@@ -1,66 +1,178 @@
 services:
-  # Next.js Application
-  app:
+  # ─── Nginx Load Balancer ──────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: buddy-connect-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+    networks:
+      - buddy-network
+    restart: unless-stopped
+
+  # ─── Next.js App Instance 1 ──────────────────────────────────────
+  app1:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        - BUILDKIT_INLINE_CACHE=1
-    container_name: buddy-connect-app
-    ports:
-      - "3000:3000"
-    environment:
-      # MongoDB Connection (using Docker internal network)
+    container_name: buddy-connect-app1
+    environment: &app-env
       - MONGODB_URI=mongodb://${MONGODB_USER:-admin}:${MONGODB_PASSWORD:-admin123}@mongodb:27017/${MONGODB_DB_NAME:-college-linkedin}?authSource=admin&retryWrites=true
       - MONGODB_DB_NAME=college-linkedin
-      
-      # JWT Secret
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
-      
-      # Node Environment
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - PORT=3000
-    
+      # MongoDB tuning
+      - MONGO_MAX_POOL_SIZE=${MONGO_MAX_POOL_SIZE:-10}
+      - MONGO_MIN_POOL_SIZE=${MONGO_MIN_POOL_SIZE:-2}
+      # Redis
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL:-}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN:-}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # Pusher
+      - PUSHER_APP_ID=${PUSHER_APP_ID:-}
+      - PUSHER_KEY=${PUSHER_KEY:-}
+      - PUSHER_SECRET=${PUSHER_SECRET:-}
+      - PUSHER_CLUSTER=${PUSHER_CLUSTER:-}
+      - NEXT_PUBLIC_PUSHER_KEY=${NEXT_PUBLIC_PUSHER_KEY:-}
+      - NEXT_PUBLIC_PUSHER_CLUSTER=${NEXT_PUBLIC_PUSHER_CLUSTER:-}
+      # Cloudflare R2
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:-}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-}
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL:-}
+      # AI
+      - AI_GATEWAY_API_KEY=${AI_GATEWAY_API_KEY:-}
+      - AI_TIMEOUT_MS=${AI_TIMEOUT_MS:-15000}
+      # Email
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@buddyconnect.app}
+      # LinkedIn OAuth
+      - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID:-}
+      - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET:-}
+      - LINKEDIN_REDIRECT_URI=${LINKEDIN_REDIRECT_URI:-}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost}
     depends_on:
       mongodb:
         condition: service_healthy
-    
+      redis:
+        condition: service_healthy
     networks:
       - buddy-network
-    
     restart: unless-stopped
-    
-    # Set resource limits
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { if (r.statusCode !== 200) throw new Error() })"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 1G
+          cpus: '1.5'
+          memory: 768M
         reservations:
-          cpus: '1'
-          memory: 512M
+          cpus: '0.5'
+          memory: 384M
 
-  # MongoDB Service (for local development)
+  # ─── Next.js App Instance 2 ──────────────────────────────────────
+  app2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: buddy-connect-app2
+    environment: *app-env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - buddy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { if (r.statusCode !== 200) throw new Error() })"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 384M
+
+  # ─── BullMQ Worker ───────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: buddy-connect-worker
+    command: ["node", "scripts/worker.js"]
+    environment: *app-env
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - buddy-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+
+  # ─── Redis ────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: buddy-connect-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - buddy-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─── MongoDB (development) ───────────────────────────────────────
   mongodb:
-    image: mongo:latest
+    image: mongo:7
     container_name: buddy-connect-mongodb
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     environment:
       - MONGO_INITDB_DATABASE=college-linkedin
       - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER:-admin}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD:-admin123}
-    
     volumes:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
-    
+      - ./scripts/init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
     networks:
       - buddy-network
-    
     restart: unless-stopped
-    
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test -u ${MONGODB_USER:-admin} -p ${MONGODB_PASSWORD:-admin123} --authenticationDatabase admin --quiet
       interval: 10s
@@ -72,6 +184,8 @@ volumes:
   mongodb_data:
     driver: local
   mongodb_config:
+    driver: local
+  redis_data:
     driver: local
 
 networks:

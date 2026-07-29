@@ -268,7 +268,7 @@ interface VideoAttachmentProps {
 }
 
 function VideoAttachment({ file, fileUrl }: VideoAttachmentProps) {
-  const { ref, inView } = useInView({ threshold: 0.4 })
+  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.4 })
   return (
     <div ref={ref} className="space-y-2">
       <div className="flex items-center justify-between gap-2 flex-wrap">

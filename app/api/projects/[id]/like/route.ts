@@ -23,9 +23,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const isLiked = project.likes?.some((id: ObjectId) => id.equals(userObjectId))
 
     if (isLiked) {
-      await db.collection("projects").updateOne({ _id: projectId }, { $pull: { likes: userObjectId } })
+      await db.collection("projects").updateOne({ _id: projectId }, { $pull: { likes: userObjectId } as any })
     } else {
-      await db.collection("projects").updateOne({ _id: projectId }, { $push: { likes: userObjectId } })
+      await db.collection("projects").updateOne({ _id: projectId }, { $push: { likes: userObjectId } as any })
     }
 
     return NextResponse.json({ message: "Like toggled successfully" }, { status: 200 })

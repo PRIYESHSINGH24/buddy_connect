@@ -1,20 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
-import { jwtVerify } from "jose"
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key")
-
-async function verifyAuth(request: NextRequest) {
-  try {
-    const token = request.cookies.get("auth_token")?.value
-    if (!token) return null
-    const decoded = await jwtVerify(token, JWT_SECRET)
-    return decoded.payload.userId as string
-  } catch {
-    return null
-  }
-}
+import { verifyAuth } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {

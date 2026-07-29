@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { verifyAuth } from "@/lib/auth";
 
 const genAI = new GoogleGenerativeAI(process.env.AI_GATEWAY_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 export async function POST(request: NextRequest) {
   try {
+    const authUserId = await verifyAuth(request)
+    if (!authUserId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
     const { conversationHistory, userMessage } = await request.json();
 
     if (!userMessage) {

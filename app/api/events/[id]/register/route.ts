@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Check if already registered
     const isRegistered = event.attendees?.some((id: ObjectId) => id.equals(userObjectId))
     if (isRegistered) {
-      await db.collection("college_events").updateOne({ _id: eventId }, { $pull: { attendees: userObjectId } })
+      await db.collection("college_events").updateOne({ _id: eventId }, { $pull: { attendees: userObjectId } as any })
       return NextResponse.json({ message: "Unregistered from event", registered: false }, { status: 200 })
     }
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Event is full" }, { status: 400 })
     }
 
-    await db.collection("college_events").updateOne({ _id: eventId }, { $push: { attendees: userObjectId } })
+    await db.collection("college_events").updateOne({ _id: eventId }, { $push: { attendees: userObjectId } as any })
 
     return NextResponse.json({ message: "Registered for event successfully", registered: true }, { status: 200 })
   } catch (error) {

@@ -3,7 +3,7 @@ import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 import { generateText } from "ai"
 // Use Google's Generative SDK when available
-import { TextGenerationClient } from "@google-ai/generativelanguage"
+import TextGenerationClient from "@google-ai/generativelanguage"
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,14 +67,13 @@ Return a JSON array with user names and a brief reason for each selection in thi
     const apiKey = process.env.AI_GATEWAY_API_KEY
     if (apiKey) {
       const modelsToTry = [
-        "models/gemini-pro-1",
-        "models/gemini-1.5",
-        "models/gemini-1.0",
-        "models/text-bison-001",
+        "models/gemini-2.0-flash",
+        "models/gemini-1.5-flash",
+        "models/gemini-1.5-pro",
       ]
       // Try SDK first (preferred). If SDK fails, fall back to REST attempts below.
       try {
-        const client = new TextGenerationClient({ apiKey })
+        const client = new (TextGenerationClient as any)({ apiKey })
         for (const model of modelsToTry) {
           try {
             const response: any = await (client as any).generateText?.({
@@ -92,12 +91,12 @@ Return a JSON array with user names and a brief reason for each selection in thi
               console.info('Generative SDK succeeded using model', model)
               break
             }
-          } catch (sdkErr) {
+          } catch (sdkErr: any) {
             console.warn('Generative SDK call failed for model', model, sdkErr?.message || sdkErr)
             // try next model
           }
         }
-      } catch (sdkInitErr) {
+      } catch (sdkInitErr: any) {
         console.warn('Generative SDK initialization failed, will fallback to REST fetch attempts', sdkInitErr?.message || sdkInitErr)
         // fall through to REST loop below
       }

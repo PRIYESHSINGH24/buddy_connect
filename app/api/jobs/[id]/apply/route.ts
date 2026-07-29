@@ -1,22 +1,7 @@
 import { NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
-import { jwtVerify } from "jose"
+import { verifyAuth } from "@/lib/auth"
 import { getUserById } from "@/lib/auth-utils"
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key")
-
-async function verifyAuth(request: Request) {
-  try {
-    const cookie = request.headers.get("cookie") || ""
-    const match = cookie.match(/auth_token=([^;]+)/)
-    const token = match ? match[1] : null
-    if (!token) return null
-    const decoded = await jwtVerify(token, JWT_SECRET)
-    return decoded.payload.userId as string
-  } catch (err) {
-    return null
-  }
-}
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const userId = await verifyAuth(request)
@@ -52,6 +37,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const updatedJob = await db.collection("jobs").findOne({ _id: new (require("mongodb").ObjectId)(jobId) })
+    if (!updatedJob) return NextResponse.json({ error: "Job not found" }, { status: 404 })
+
     const serialized = {
       ...updatedJob,
       _id: updatedJob._id.toString(),

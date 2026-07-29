@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
+import { verifyAuth } from "@/lib/auth"
+import { cacheFetch, cacheDelete } from "@/lib/redis"
 
 // Get all posts
 export async function GET(request: NextRequest) {
@@ -80,6 +82,10 @@ export async function GET(request: NextRequest) {
 // Create new post
 export async function POST(request: NextRequest) {
   try {
+    const authUserId = await verifyAuth(request)
+    if (!authUserId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
     const contentType = request.headers.get("content-type") || ""
     let body: any = {}
 
@@ -126,6 +132,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId, author, authorImage, content, attachments } = body
+    const effectiveUserId = authUserId
 
     if (!userId || !author || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -145,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     const db = await getDatabase()
     const result = await db.collection("posts").insertOne({
-      userId: new ObjectId(userId),
+      userId: new ObjectId(effectiveUserId),
       author,
       authorImage,
       content: content.slice(0, 5000), // Max 5000 chars
@@ -155,6 +162,9 @@ export async function POST(request: NextRequest) {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
+
+    // Invalidate feed cache on new post
+    cacheDelete("posts:firstpage").catch(() => {})
 
     return NextResponse.json({ message: "Post created", postId: result.insertedId }, { status: 201 })
   } catch (error) {

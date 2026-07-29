@@ -41,7 +41,23 @@ export async function ensureIndexes() {
     // Connection requests indexes
     await db.collection("users").createIndex({ incomingRequests: 1 }, { background: true, sparse: true })
     await db.collection("users").createIndex({ outgoingRequests: 1 }, { background: true, sparse: true })
+    await db.collection("users").createIndex({ connections: 1 }, { background: true, sparse: true })
     console.log("✓ Connection indexes created")
+
+    // Messages indexes — critical for conversation queries (Item 12)
+    await db.collection("messages").createIndex(
+      { from: 1, to: 1, createdAt: -1 },
+      { background: true }
+    )
+    await db.collection("messages").createIndex(
+      { to: 1, from: 1, createdAt: -1 },
+      { background: true }
+    )
+    await db.collection("messages").createIndex(
+      { createdAt: -1 },
+      { background: true }
+    )
+    console.log("✓ Messages indexes created")
   } catch (error) {
     console.error("Index creation error (may be non-fatal):", error)
   }

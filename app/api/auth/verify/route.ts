@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
       { returnDocument: 'after' }
     )
 
-    if (!result.value) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
+    const doc = (result as any)?.value || result
+    if (!doc) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
 
     return NextResponse.json({ ok: true })
   } catch (e) {

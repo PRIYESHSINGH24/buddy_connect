@@ -99,7 +99,7 @@ export default function ProfilePage() {
   }, [user?._id])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }))
@@ -190,11 +190,11 @@ export default function ProfilePage() {
         bio: formData.bio,
         skills: formData.skills
           .split(',')
-          .map((s) => s.trim())
+          .map((s: string) => s.trim())
           .filter(Boolean),
         interests: formData.interests
           .split(',')
-          .map((i) => i.trim())
+          .map((i: string) => i.trim())
           .filter(Boolean),
         experience,
         education,

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
+import { verifyAuth } from "@/lib/auth"
 
 // Get all projects (paginated)
 export async function GET(request: NextRequest) {
@@ -144,6 +145,10 @@ export async function GET(request: NextRequest) {
 // Create new project
 export async function POST(request: NextRequest) {
   try {
+    const authUserId = await verifyAuth(request)
+    if (!authUserId) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
     const body = await request.json()
     const { userId, author, title, description, githubUrl, technologies, image } = body
 

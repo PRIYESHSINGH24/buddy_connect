@@ -33,6 +33,12 @@ export interface User {
     text: string
     createdAt: Date
   }>
+  experience?: any[]
+  education?: any[]
+  projects?: any[]
+  certifications?: any[]
+  contact?: Record<string, any>
+  resumeUrl?: string
   emailVerified?: boolean
   verificationToken?: string
   resetToken?: string
@@ -59,7 +65,8 @@ export interface PostAttachment {
   name: string
   type: string
   size: number
-  data: string
+  url?: string   // R2 public URL (new uploads)
+  data?: string  // base64 data URL (legacy, kept for backward compat)
 }
 
 export interface Comment {
@@ -162,5 +169,14 @@ export interface Notification {
   message: string
   jobId?: ObjectId
   read?: boolean
+  createdAt: Date
+}
+
+export interface Message {
+  _id?: ObjectId
+  from: ObjectId
+  to: ObjectId
+  content: string
+  readAt?: Date | null
   createdAt: Date
 }
