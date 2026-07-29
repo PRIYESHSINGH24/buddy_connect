@@ -3,8 +3,8 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm first
-RUN npm install -g pnpm@latest --no-audit --no-fund
+# Install pnpm v9
+RUN npm install -g pnpm@9 --no-audit --no-fund
 
 # Copy package files
 COPY package.json pnpm-lock.yaml* ./
@@ -26,8 +26,8 @@ WORKDIR /app
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
 
-# Install pnpm
-RUN npm install -g pnpm@latest --no-audit --no-fund
+# Install pnpm v9
+RUN npm install -g pnpm@9 --no-audit --no-fund
 
 # Copy package files from builder
 COPY package.json pnpm-lock.yaml* ./
