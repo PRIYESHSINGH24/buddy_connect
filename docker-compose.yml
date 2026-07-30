@@ -131,6 +131,8 @@ services:
     networks:
       - buddy-network
     restart: unless-stopped
+    healthcheck:
+      disable: true
     deploy:
       resources:
         limits:
