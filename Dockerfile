@@ -61,7 +61,7 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:3000/', (r) => {if (r.statusCode >= 400) throw new Error(r.statusCode)})" || exit 1
+  CMD node -e "require('http').get('http://127.0.0.1:3000/',(r)=>{r.resume();r.on('end',()=>{process.exit(r.statusCode>=400?1:0)})}).on('error',()=>process.exit(1))"
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
