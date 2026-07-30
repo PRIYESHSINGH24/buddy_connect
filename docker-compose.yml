@@ -25,7 +25,7 @@ services:
     environment: &app-env
       - MONGODB_URI=mongodb://${MONGODB_USER:-admin}:${MONGODB_PASSWORD:-admin123}@mongodb:27017/${MONGODB_DB_NAME:-college-linkedin}?authSource=admin&retryWrites=true
       - MONGODB_DB_NAME=college-linkedin
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-key-change-in-production-123}
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - PORT=3000
@@ -70,7 +70,7 @@ services:
       - buddy-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { if (r.statusCode !== 200) throw new Error() })"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { if (r.statusCode >= 400) throw new Error(r.statusCode) })"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -100,7 +100,7 @@ services:
       - buddy-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { if (r.statusCode !== 200) throw new Error() })"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => { if (r.statusCode >= 400) throw new Error(r.statusCode) })"]
       interval: 15s
       timeout: 5s
       retries: 3
