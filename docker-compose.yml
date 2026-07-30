@@ -159,7 +159,6 @@ services:
   mongodb:
     image: mongo:7
     container_name: buddy-connect-mongodb
-    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     environment:
@@ -169,16 +168,15 @@ services:
     volumes:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
-      - ./scripts/init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
     networks:
       - buddy-network
     restart: unless-stopped
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test -u ${MONGODB_USER:-admin} -p ${MONGODB_PASSWORD:-admin123} --authenticationDatabase admin --quiet
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "-u", "${MONGODB_USER:-admin}", "-p", "${MONGODB_PASSWORD:-admin123}", "--authenticationDatabase", "admin", "--quiet"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 40s
+      start_period: 15s
 
 volumes:
   mongodb_data:
