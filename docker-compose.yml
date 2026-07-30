@@ -172,11 +172,11 @@ services:
       - buddy-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "-u", "${MONGODB_USER:-admin}", "-p", "${MONGODB_PASSWORD:-admin123}", "--authenticationDatabase", "admin", "--quiet"]
+      test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand(\"ping\")' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 20s
 
 volumes:
   mongodb_data:
