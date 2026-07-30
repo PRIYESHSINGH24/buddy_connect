@@ -44,7 +44,7 @@ COPY --from=builder /app/tsconfig.json ./
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 && \
-    chown -R nextjs:nodejs /app
+    chown -R nextjs:nodejs /app/.next
 
 USER nextjs
 
