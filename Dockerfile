@@ -35,11 +35,13 @@ COPY package.json pnpm-lock.yaml* ./
 # Install production dependencies only
 RUN pnpm install --prod --shamefully-hoist --ignore-scripts 2>&1
 
-# Copy built application from builder
+# Copy built application and scripts from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.mjs ./
 COPY --from=builder /app/tsconfig.json ./
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/lib ./lib
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \

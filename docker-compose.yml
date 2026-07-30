@@ -120,7 +120,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: buddy-connect-worker
-    command: ["node", "scripts/worker.js"]
+    command: ["pnpm", "dlx", "tsx", "scripts/worker.ts"]
     environment: *app-env
     depends_on:
       redis:
