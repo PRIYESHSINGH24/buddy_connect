@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
@@ -13,12 +12,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!targetId) return NextResponse.json({ error: "Target user id required" }, { status: 400 })
     if (targetId === userId) return NextResponse.json({ error: "Cannot connect to self" }, { status: 400 })
 
-    const db = await getDatabase()
+    // Add to target incomingRequests and to requester outgoingRequests ($addToSet semantics)
+    const [target, me] = await Promise.all([
+      prisma.user.findUnique({ where: { id: targetId }, select: { incomingRequests: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { outgoingRequests: true } }),
+    ])
+    if (!target || !me) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-    // Add to target incomingRequests and to requester outgoingRequests
-    await Promise.all([
-      db.collection("users").updateOne({ _id: new ObjectId(targetId) }, { $addToSet: { incomingRequests: new ObjectId(userId) } as any } as any),
-      db.collection("users").updateOne({ _id: new ObjectId(userId) }, { $addToSet: { outgoingRequests: new ObjectId(targetId) } as any } as any),
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: targetId },
+        data: { incomingRequests: { set: Array.from(new Set([...(target.incomingRequests || []), userId])) } },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { outgoingRequests: { set: Array.from(new Set([...(me.outgoingRequests || []), targetId])) } },
+      }),
     ])
 
     return NextResponse.json({ message: "Connection request sent" }, { status: 200 })

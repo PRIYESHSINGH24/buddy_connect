@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -9,7 +8,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (!fromUserId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
     const { id } = params
-    if (!ObjectId.isValid(id)) return NextResponse.json({ error: "Invalid user" }, { status: 400 })
 
     const body = await request.json()
     const { text } = body
@@ -17,11 +15,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Endorsement text required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    await db.collection("users").updateOne(
-      { _id: new ObjectId(id) },
-      { $push: { endorsements: { from: new ObjectId(fromUserId), text: text.trim(), createdAt: new Date() } } as any }
-    )
+    const user = await prisma.user.findUnique({ where: { id }, select: { endorsements: true } })
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+
+    const current = (user.endorsements as any[]) || []
+    await prisma.user.update({
+      where: { id },
+      data: {
+        endorsements: [
+          ...current,
+          { from: fromUserId, text: text.trim(), createdAt: new Date().toISOString() },
+        ],
+      },
+    })
 
     return NextResponse.json({ ok: true })
   } catch (e) {

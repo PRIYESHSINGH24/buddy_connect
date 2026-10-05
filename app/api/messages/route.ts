@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { verifyAuth } from "@/lib/auth"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { cacheFetch, cacheDelete } from "@/lib/redis"
 import { triggerNewMessage } from "@/lib/pusher"
 
@@ -13,14 +12,11 @@ async function isConnected(userId: string, targetId: string): Promise<boolean> {
     `conn:${[userId, targetId].sort().join(":")}`,
     30, // 30 second TTL
     async () => {
-      const db = await getDatabase()
-      const user = await db.collection("users").findOne(
-        { _id: new ObjectId(userId) },
-        { projection: { connections: 1 } }
-      )
-      return (user?.connections || []).some(
-        (id: any) => id.toString() === targetId
-      )
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { connections: true },
+      })
+      return (user?.connections || []).includes(targetId)
     }
   )
 }
@@ -43,11 +39,10 @@ export async function GET(request: NextRequest) {
     const limitParam = parseInt(request.nextUrl.searchParams.get("limit") || "50", 10)
     const limit = Math.min(Math.max(limitParam, 1), 100)
 
-    const db = await getDatabase()
     const query: any = {
-      $or: [
-        { from: new ObjectId(userId), to: new ObjectId(withId) },
-        { from: new ObjectId(withId), to: new ObjectId(userId) },
+      OR: [
+        { from: userId, to: withId },
+        { from: withId, to: userId },
       ],
     }
 
@@ -55,24 +50,23 @@ export async function GET(request: NextRequest) {
     if (cursor) {
       const cursorDate = new Date(cursor)
       if (!isNaN(cursorDate.getTime())) {
-        query.createdAt = { $lt: cursorDate }
+        query.createdAt = { lt: cursorDate }
       }
     }
 
-    const messages = await db
-      .collection("messages")
-      .find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit + 1)
-      .toArray()
+    const messages = await prisma.message.findMany({
+      where: query,
+      orderBy: { createdAt: "desc" },
+      take: limit + 1,
+    })
 
     const hasMore = messages.length > limit
     const page = messages.slice(0, limit).reverse() // Reverse to chronological order
 
-    const serialized = page.map((m: any) => ({
-      _id: m._id?.toString(),
-      from: m.from?.toString(),
-      to: m.to?.toString(),
+    const serialized = page.map((m) => ({
+      _id: m.id,
+      from: m.from,
+      to: m.to,
       content: m.content,
       readAt: m.readAt ? new Date(m.readAt).toISOString() : null,
       createdAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
@@ -103,24 +97,22 @@ export async function POST(request: NextRequest) {
     const connected = await isConnected(userId, to)
     if (!connected) return NextResponse.json({ error: "Not connected" }, { status: 403 })
 
-    const db = await getDatabase()
-    const message = {
-      from: new ObjectId(userId),
-      to: new ObjectId(to),
-      content: content.slice(0, 5000), // Max 5000 chars
-      readAt: null,
-      createdAt: new Date(),
-    }
-
-    const result = await db.collection("messages").insertOne(message)
+    const created = await prisma.message.create({
+      data: {
+        from: userId,
+        to,
+        content: content.slice(0, 5000), // Max 5000 chars
+        readAt: null,
+      },
+    })
 
     const serialized = {
-      _id: result.insertedId.toString(),
-      from: message.from.toString(),
-      to: message.to.toString(),
-      content: message.content,
+      _id: created.id,
+      from: created.from,
+      to: created.to,
+      content: created.content,
       readAt: null,
-      createdAt: message.createdAt.toISOString(),
+      createdAt: created.createdAt.toISOString(),
     }
 
     // Trigger real-time delivery via Pusher (fire and forget)

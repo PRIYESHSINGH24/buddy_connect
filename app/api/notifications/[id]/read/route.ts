@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -9,19 +8,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
     const notifId = params.id
-    if (!notifId || !ObjectId.isValid(notifId)) {
+    if (!notifId) {
       return NextResponse.json({ error: "Invalid notification id" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const result = await db.collection("notifications").findOneAndUpdate(
-      { _id: new ObjectId(notifId), recipient: new ObjectId(userId) },
-      { $set: { read: true } },
-      { returnDocument: "after" }
-    )
+    const result = await prisma.notification.updateMany({
+      where: { id: notifId, recipient: userId },
+      data: { read: true },
+    })
 
-    const doc = (result as any)?.value || result
-    if (!doc) {
+    if (result.count === 0) {
       return NextResponse.json({ error: "Notification not found" }, { status: 404 })
     }
 

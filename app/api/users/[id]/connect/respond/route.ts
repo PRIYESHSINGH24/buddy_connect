@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
@@ -17,15 +16,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (!requesterId || !action) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
 
-    const db = await getDatabase()
+    const [target, requester] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: targetId },
+        select: { connections: true, incomingRequests: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: requesterId },
+        select: { connections: true, outgoingRequests: true },
+      }),
+    ])
+    if (!target || !requester) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
     if (action === "accept") {
       // Add each other as connections and remove pending requests
-      await Promise.all([
-        db.collection("users").updateOne({ _id: new ObjectId(targetId) }, { $addToSet: { connections: new ObjectId(requesterId) } as any } as any),
-        db.collection("users").updateOne({ _id: new ObjectId(requesterId) }, { $addToSet: { connections: new ObjectId(targetId) } as any } as any),
-        db.collection("users").updateOne({ _id: new ObjectId(targetId) }, { $pull: { incomingRequests: new ObjectId(requesterId) } as any } as any),
-        db.collection("users").updateOne({ _id: new ObjectId(requesterId) }, { $pull: { outgoingRequests: new ObjectId(targetId) } as any } as any),
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: targetId },
+          data: {
+            connections: { set: Array.from(new Set([...(target.connections || []), requesterId])) },
+            incomingRequests: { set: (target.incomingRequests || []).filter((id) => id !== requesterId) },
+          },
+        }),
+        prisma.user.update({
+          where: { id: requesterId },
+          data: {
+            connections: { set: Array.from(new Set([...(requester.connections || []), targetId])) },
+            outgoingRequests: { set: (requester.outgoingRequests || []).filter((id) => id !== targetId) },
+          },
+        }),
       ])
 
       return NextResponse.json({ message: "Connection accepted" }, { status: 200 })
@@ -33,9 +52,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // decline
     if (action === "decline") {
-      await Promise.all([
-        db.collection("users").updateOne({ _id: new ObjectId(targetId) }, { $pull: { incomingRequests: new ObjectId(requesterId) } as any } as any),
-        db.collection("users").updateOne({ _id: new ObjectId(requesterId) }, { $pull: { outgoingRequests: new ObjectId(targetId) } as any } as any),
+      await prisma.$transaction([
+        prisma.user.update({
+          where: { id: targetId },
+          data: { incomingRequests: { set: (target.incomingRequests || []).filter((id) => id !== requesterId) } },
+        }),
+        prisma.user.update({
+          where: { id: requesterId },
+          data: { outgoingRequests: { set: (requester.outgoingRequests || []).filter((id) => id !== targetId) } },
+        }),
       ])
 
       return NextResponse.json({ message: "Connection declined" }, { status: 200 })

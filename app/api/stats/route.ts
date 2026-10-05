@@ -1,22 +1,21 @@
 import { NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 import { cacheFetch } from "@/lib/redis"
 
 export async function GET() {
   try {
-    // Cache stats for 5 minutes — countDocuments() is expensive
+    // Cache stats for 5 minutes — count() is expensive
     const stats = await cacheFetch(
       "stats:global",
       300, // 5 min TTL
       async () => {
-        const db = await getDatabase()
         try {
           const [users, projects, posts, events, jobs] = await Promise.all([
-            db.collection("users").countDocuments({}),
-            db.collection("projects").countDocuments({}),
-            db.collection("posts").countDocuments({}),
-            db.collection("college_events").countDocuments({}),
-            db.collection("jobs").countDocuments({}),
+            prisma.user.count(),
+            prisma.project.count(),
+            prisma.post.count(),
+            prisma.collegeEvent.count(),
+            prisma.job.count(),
           ])
           return { users, projects, posts, events, jobs }
         } catch (e) {

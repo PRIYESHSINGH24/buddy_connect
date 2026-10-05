@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 import { cacheFetch } from "@/lib/redis"
 
 // GET /api/users?cursor=<name>&limit=<number>&search=<query>
@@ -16,44 +16,43 @@ export async function GET(request: NextRequest) {
     const cacheKey = !cursor && !search ? "users:firstpage" : null
     
     const fetchUsers = async () => {
-      const db = await getDatabase()
       const query: any = {}
 
       if (cursor) {
-        query.name = { $gt: cursor }
+        query.name = { gt: cursor }
       }
 
       if (search) {
-        query.$or = [
-          { name: { $regex: search, $options: "i" } },
-          { skills: { $in: [new RegExp(search, "i")] } },
-          { college: { $regex: search, $options: "i" } },
-          { department: { $regex: search, $options: "i" } },
+        query.OR = [
+          { name: { contains: search, mode: "insensitive" } },
+          { skills: { hasInsensitive: search } },
+          { college: { contains: search, mode: "insensitive" } },
+          { department: { contains: search, mode: "insensitive" } },
         ]
       }
 
-      const users = await db
-        .collection("users")
-        .find(query, {
-          projection: {
-            name: 1,
-            profileImage: 1,
-            department: 1,
-            year: 1,
-            skills: 1,
-            college: 1,
-          },
-        })
-        .sort({ name: 1 })
-        .limit(limit + 1)
-        .toArray()
+      const users = await prisma.user.findMany({
+        where: query,
+        orderBy: { name: "asc" },
+        take: limit + 1,
+        select: {
+          id: true,
+          name: true,
+          profileImage: true,
+          department: true,
+          year: true,
+          skills: true,
+          college: true,
+        },
+      })
 
       const hasMore = users.length > limit
       const page = users.slice(0, limit)
 
-      const serialized = page.map((u: any) => ({
+      const serialized = page.map((u) => ({
         ...u,
-        _id: u._id?.toString(),
+        _id: u.id,
+        id: undefined,
       }))
 
       const nextCursor = hasMore ? serialized[serialized.length - 1].name : null

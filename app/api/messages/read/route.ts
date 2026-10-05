@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { verifyAuth } from "@/lib/auth"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { triggerMessagesRead } from "@/lib/pusher"
 
 /**
@@ -34,26 +33,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Only mark messages that are sent TO the current user (not FROM)
-    const objectIds = messageIds
-      .filter((id) => ObjectId.isValid(id))
-      .map((id) => new ObjectId(id))
+    const ids = messageIds.filter((id): id is string => typeof id === "string" && id.length > 0)
 
-    if (objectIds.length === 0) {
+    if (ids.length === 0) {
       return NextResponse.json({ error: "No valid message IDs" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const result = await db.collection("messages").updateMany(
-      {
-        _id: { $in: objectIds },
-        to: new ObjectId(userId), // Only mark messages sent TO me
+    const result = await prisma.message.updateMany({
+      where: {
+        id: { in: ids },
+        to: userId, // Only mark messages sent TO me
         readAt: null, // Only mark unread messages
       },
-      { $set: { readAt: new Date() } }
-    )
+      data: { readAt: new Date() },
+    })
 
     // Trigger read receipt via Pusher (fire and forget)
-    if (result.modifiedCount > 0) {
+    if (result.count > 0) {
       triggerMessagesRead(userId, conversationWith, messageIds).catch((err) =>
         console.error("Pusher read receipt trigger failed:", err)
       )
@@ -61,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        marked: result.modifiedCount,
+        marked: result.count,
         messageIds,
       },
       { status: 200 }
