@@ -1,7 +1,9 @@
-import type { ObjectId } from "mongodb"
+// Shared API-facing types.
+// DB access goes through Prisma (lib/prisma.ts). IDs are cuid() strings;
+// API responses serialize them as `_id` to keep the frontend contract stable.
 
 export interface User {
-  _id?: ObjectId
+  _id?: string
   email: string
   password: string // hashed
   name: string
@@ -22,16 +24,16 @@ export interface User {
   }
   interests: string[]
   // Connections: other users this user is connected with
-  connections?: ObjectId[]
+  connections?: string[]
   // Incoming connection requests (user ids who requested)
-  incomingRequests?: ObjectId[]
+  incomingRequests?: string[]
   // Outgoing connection requests (user ids this user requested)
-  outgoingRequests?: ObjectId[]
-  featuredProjectIds?: ObjectId[]
+  outgoingRequests?: string[]
+  featuredProjectIds?: string[]
   endorsements?: Array<{
-    from: ObjectId
+    from: string
     text: string
-    createdAt: Date
+    createdAt: Date | string
   }>
   experience?: any[]
   education?: any[]
@@ -48,14 +50,14 @@ export interface User {
 }
 
 export interface Post {
-  _id?: ObjectId
-  userId: ObjectId
+  _id?: string
+  userId: string
   author: string
   authorImage?: string
   content: string
   image?: string
   attachments?: PostAttachment[]
-  likes: ObjectId[]
+  likes: string[]
   comments: Comment[]
   createdAt: Date
   updatedAt: Date
@@ -70,47 +72,47 @@ export interface PostAttachment {
 }
 
 export interface Comment {
-  _id?: ObjectId
-  userId: ObjectId
+  _id?: string
+  userId: string
   author: string
   content: string
   createdAt: Date
 }
 
 export interface Project {
-  _id?: ObjectId
-  userId: ObjectId
+  _id?: string
+  userId: string
   author: string
   title: string
   description: string
   githubUrl: string
   technologies: string[]
   image?: string
-  likes: ObjectId[]
+  likes: string[]
   createdAt: Date
   updatedAt: Date
 }
 
 export interface HackathonTeam {
-  _id?: ObjectId
-  hackathonId: ObjectId
+  _id?: string
+  hackathonId: string
   name: string
-  members: ObjectId[]
-  teamLead: ObjectId
+  members: string[]
+  teamLead: string
   skills: string[]
   idea?: string
   createdAt: Date
 }
 
 export interface CollegeEvent {
-  _id?: ObjectId
+  _id?: string
   title: string
   description: string
   date: Date
   time: string
   location: string
-  organizer: ObjectId
-  attendees: ObjectId[]
+  organizer: string
+  attendees: string[]
   category: string // hackathon, seminar, workshop, etc.
   image?: string
   registrationOpen: boolean
@@ -120,7 +122,7 @@ export interface CollegeEvent {
 }
 
 export interface Hackathon {
-  _id?: ObjectId
+  _id?: string
   title: string
   description: string
   startDate: Date
@@ -129,13 +131,13 @@ export interface Hackathon {
   theme: string
   image?: string
   prizes: string[]
-  organizer: ObjectId
-  teams: ObjectId[]
+  organizer: string
+  teams: string[]
   createdAt: Date
 }
 
 export interface Company {
-  _id?: ObjectId
+  _id?: string
   name: string
   description?: string
   website?: string
@@ -145,8 +147,8 @@ export interface Company {
 }
 
 export interface Job {
-  _id?: ObjectId
-  companyId?: ObjectId
+  _id?: string
+  companyId?: string
   companyName: string
   title: string
   description: string
@@ -155,27 +157,27 @@ export interface Job {
   salaryRange?: string
   hiringBatch?: string
   applyLink?: string
-  applicants: ObjectId[]
-  createdBy: ObjectId
+  applicants: string[]
+  createdBy: string
   createdAt: Date
   updatedAt?: Date
 }
 
 export interface Notification {
-  _id?: ObjectId
-  recipient: ObjectId
-  sender?: ObjectId
+  _id?: string
+  recipient: string
+  sender?: string
   type: string
   message: string
-  jobId?: ObjectId
+  jobId?: string
   read?: boolean
   createdAt: Date
 }
 
 export interface Message {
-  _id?: ObjectId
-  from: ObjectId
-  to: ObjectId
+  _id?: string
+  from: string
+  to: string
   content: string
   readAt?: Date | null
   createdAt: Date

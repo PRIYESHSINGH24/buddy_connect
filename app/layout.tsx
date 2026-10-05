@@ -7,12 +7,6 @@ import { ThemeProvider } from '@/components/theme-provider'
 import ThemeToggle from '@/components/ui/theme-toggle'
 import BottomNav from '@/components/ui/bottom-nav'
 import AIChatAssistant from '@/components/ai/ai-chat-assistant'
-import { ensureIndexes } from '@/lib/ensure-indexes'
-
-// Ensure DB indexes on app start if MONGODB_URI is provided
-if (process.env.MONGODB_URI) {
-  ensureIndexes().catch(err => console.error("Failed to ensure indexes:", err))
-}
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });

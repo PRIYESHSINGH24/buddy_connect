@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs"
-import { getDatabase } from "./mongodb"
+import { prisma } from "./prisma"
 import type { User } from "./db-schemas"
-import { ObjectId } from "mongodb"
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10)
@@ -12,32 +11,40 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function createUser(userData: Omit<User, "_id" | "createdAt" | "updatedAt">) {
-  const db = await getDatabase()
   const hashedPassword = await hashPassword(userData.password)
 
-  const result = await db.collection("users").insertOne({
-    ...userData,
-    password: hashedPassword,
-    skills: userData.skills || [],
-    interests: userData.interests || [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
+  const user = await prisma.user.create({
+    data: {
+      email: userData.email.toLowerCase(),
+      password: hashedPassword,
+      name: userData.name,
+      username: userData.username || null,
+      college: userData.college || "",
+      department: userData.department || "",
+      year: userData.year || "",
+      skills: userData.skills || [],
+      bio: userData.bio || "",
+      profileImage: userData.profileImage || null,
+      linkedinUrl: userData.linkedinUrl || null,
+      socials: (userData.socials as any) ?? undefined,
+      interests: userData.interests || [],
+    },
   })
 
-  return result.insertedId
+  return user.id
 }
 
 export async function getUserByEmail(email: string) {
-  const db = await getDatabase()
-  return db.collection<User>("users").findOne({ email: email.toLowerCase() })
+  return prisma.user.findUnique({ where: { email: email.toLowerCase() } })
 }
 
-export async function getUserById(id: string | ObjectId) {
-  const db = await getDatabase()
-  return db.collection<User>("users").findOne({ _id: new ObjectId(id) })
+export async function getUserById(id: string) {
+  return prisma.user.findUnique({ where: { id: String(id) } })
 }
 
-export async function updateUser(id: string | ObjectId, updates: Partial<User>) {
-  const db = await getDatabase()
-  return db.collection("users").updateOne({ _id: new ObjectId(id) }, { $set: { ...updates, updatedAt: new Date() } })
+export async function updateUser(id: string, updates: Partial<User>) {
+  return prisma.user.update({
+    where: { id: String(id) },
+    data: { ...(updates as any), updatedAt: new Date() },
+  })
 }

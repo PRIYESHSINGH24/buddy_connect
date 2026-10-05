@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Signup error:", error)
 
-    // If the error is due to missing MONGODB_URI, return a helpful message to the developer
-    if (error instanceof Error && error.message.includes("MONGODB_URI")) {
+    // If the error is due to missing DATABASE_URL, return a helpful message to the developer
+    if (error instanceof Error && error.message.includes("DATABASE_URL")) {
       return NextResponse.json(
         {
           error:
-            "Server misconfiguration: MONGODB_URI is not set. Create a .env.local file (see .env.local.example) or set the environment variable in your deployment provider.",
+            "Server misconfiguration: DATABASE_URL is not set. Add it to your .env file (see .env.example) or set the environment variable in your deployment provider.",
         },
         { status: 500 }
       )

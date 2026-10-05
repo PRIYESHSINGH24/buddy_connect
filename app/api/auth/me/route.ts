@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUserById, updateUser } from "@/lib/auth-utils"
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 export async function GET(request: NextRequest) {
@@ -17,26 +17,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Load recent notifications (last 10)
-    const db = await getDatabase()
-    const rawNotifs = await db
-      .collection("notifications")
-      .find({ recipient: new (require("mongodb").ObjectId)(userId) })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .toArray()
+    const rawNotifs = await prisma.notification.findMany({
+      where: { recipient: userId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    })
 
-    const notifications = (rawNotifs || []).map((n: any) => ({
-      _id: n._id.toString(),
-      sender: n.sender?.toString(),
+    const notifications = rawNotifs.map((n) => ({
+      _id: n.id,
+      sender: n.sender ?? undefined,
       type: n.type,
       message: n.message,
-      jobId: n.jobId?.toString(),
+      jobId: n.jobId ?? undefined,
       read: !!n.read,
       createdAt: n.createdAt?.toISOString(),
     }))
 
     return NextResponse.json({
-      _id: user._id?.toString(),
+      _id: user.id,
       email: user.email,
       name: user.name,
       college: user.college,
@@ -48,17 +46,17 @@ export async function GET(request: NextRequest) {
       profileImage: user.profileImage,
       linkedinUrl: user.linkedinUrl,
       // resume / profile fields
-      experience: user.experience || [],
-      education: user.education || [],
-      projects: user.projects || [],
-      certifications: user.certifications || [],
-      contact: user.contact || {},
+      experience: (user.experience as any) || [],
+      education: (user.education as any) || [],
+      projects: (user.projects as any) || [],
+      certifications: (user.certifications as any) || [],
+      contact: (user.contact as any) || {},
       resumeUrl: user.resumeUrl || null,
       notifications,
       // connection info
-      connections: (user.connections || []).map((id: any) => id.toString()),
-      incomingRequests: (user.incomingRequests || []).map((id: any) => id.toString()),
-      outgoingRequests: (user.outgoingRequests || []).map((id: any) => id.toString()),
+      connections: user.connections || [],
+      incomingRequests: user.incomingRequests || [],
+      outgoingRequests: user.outgoingRequests || [],
     })
   } catch (error) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 })
@@ -78,8 +76,9 @@ export async function PUT(request: NextRequest) {
 
     // Enforce username uniqueness if changing
     if (username) {
-      const db = await getDatabase()
-      const existing = await db.collection('users').findOne({ username, _id: { $ne: new (require('mongodb').ObjectId)(userId) } })
+      const existing = await prisma.user.findFirst({
+        where: { username, NOT: { id: userId } },
+      })
       if (existing) {
         return NextResponse.json({ error: 'Username already taken' }, { status: 409 })
       }
@@ -104,7 +103,7 @@ export async function PUT(request: NextRequest) {
     const user = await getUserById(userId)
 
     return NextResponse.json({
-      _id: user?._id?.toString(),
+      _id: user?.id,
       email: user?.email,
       name: user?.name,
       college: user?.college,
@@ -116,11 +115,11 @@ export async function PUT(request: NextRequest) {
       profileImage: user?.profileImage,
       linkedinUrl: user?.linkedinUrl,
       socials: user?.socials,
-      featuredProjectIds: (user?.featuredProjectIds || []).map((id: any) => id.toString()),
+      featuredProjectIds: user?.featuredProjectIds || [],
       username: user?.username,
-      connections: (user?.connections || []).map((id: any) => id.toString()),
-      incomingRequests: (user?.incomingRequests || []).map((id: any) => id.toString()),
-      outgoingRequests: (user?.outgoingRequests || []).map((id: any) => id.toString()),
+      connections: user?.connections || [],
+      incomingRequests: user?.incomingRequests || [],
+      outgoingRequests: user?.outgoingRequests || [],
     })
   } catch (error) {
     console.error("Profile update error:", error)

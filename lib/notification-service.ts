@@ -1,5 +1,4 @@
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { triggerNotification } from "@/lib/pusher"
 
 /**
@@ -23,25 +22,20 @@ export async function sendNotification(
   }
 ): Promise<string | null> {
   try {
-    const db = await getDatabase()
-
-    const notification = {
-      recipient: new ObjectId(recipientId),
-      ...(data.senderId && { sender: new ObjectId(data.senderId) }),
-      type: data.type,
-      message: data.message,
-      ...(data.jobId && { jobId: new ObjectId(data.jobId) }),
-      read: false,
-      createdAt: new Date(),
-    }
-
-    const result = await db
-      .collection("notifications")
-      .insertOne(notification)
+    const notification = await prisma.notification.create({
+      data: {
+        recipient: recipientId,
+        sender: data.senderId ?? null,
+        type: data.type,
+        message: data.message,
+        jobId: data.jobId ?? null,
+        read: false,
+      },
+    })
 
     // Trigger real-time notification via Pusher (fire and forget)
     triggerNotification(recipientId, {
-      _id: result.insertedId.toString(),
+      _id: notification.id,
       type: data.type,
       message: data.message,
       senderId: data.senderId,
@@ -50,7 +44,7 @@ export async function sendNotification(
       console.error("Failed to trigger Pusher notification:", err)
     )
 
-    return result.insertedId.toString()
+    return notification.id
   } catch (error) {
     console.error("sendNotification error:", error)
     return null

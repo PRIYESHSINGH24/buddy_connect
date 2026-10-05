@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getUserByEmail, verifyPassword } from "@/lib/auth-utils"
-import { JWT_SECRET_KEY, signToken } from "@/lib/auth"
+import { signToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create JWT token
-    const token = await signToken({ userId: user._id?.toString(), email: user.email })
+    const token = await signToken({ userId: user.id, email: user.email })
 
-    const response = NextResponse.json({ message: "Login successful", userId: user._id }, { status: 200 })
+    const response = NextResponse.json({ message: "Login successful", userId: user.id }, { status: 200 })
     response.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
