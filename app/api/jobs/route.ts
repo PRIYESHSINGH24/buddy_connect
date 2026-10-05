@@ -1,35 +1,36 @@
 import { NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 export async function GET(request: Request) {
   try {
     const start = performance.now()
-    const db = await getDatabase()
     const dbStart = performance.now()
-    const jobs = await db.collection("jobs").find({}, {
-      projection: {
-        companyName: 1,
-        title: 1,
-        description: 1,
-        location: 1,
-        employmentType: 1,
-        salaryRange: 1,
-        hiringBatch: 1,
-        applyLink: 1,
-        applicants: 1,
-        createdBy: 1,
-        createdAt: 1,
+    const jobs = await prisma.job.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        companyName: true,
+        title: true,
+        description: true,
+        location: true,
+        employmentType: true,
+        salaryRange: true,
+        hiringBatch: true,
+        applyLink: true,
+        applicants: true,
+        createdBy: true,
+        createdAt: true,
       },
-    }).sort({ createdAt: -1 }).limit(100).toArray()
+    })
     const dbDuration = performance.now() - dbStart
     
-    const serialized = jobs.map((j: any) => ({
+    const serialized = jobs.map((j) => ({
       ...j,
-      _id: j._id.toString(),
-      companyId: j.companyId?.toString(),
-      applicants: (j.applicants || []).map((a: any) => a.toString()),
-      createdBy: j.createdBy?.toString(),
+      _id: j.id,
+      id: undefined,
+      applicants: j.applicants || [],
       createdAt: j.createdAt?.toISOString(),
     }))
     
@@ -135,29 +136,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const now = new Date()
-    const result = await db.collection("jobs").insertOne({
-      companyName,
-      title,
-      description,
-      location: location || "",
-      employmentType: employmentType || "",
-      salaryRange: salaryRange || "",
-      hiringBatch: hiringBatch || "",
-      applyLink: applyLink || "",
-      applicants: [],
-      createdBy: new (require("mongodb").ObjectId)(userId),
-      createdAt: now,
-      updatedAt: now,
+    const created = await prisma.job.create({
+      data: {
+        companyName,
+        title,
+        description,
+        location: location || "",
+        employmentType: employmentType || "",
+        salaryRange: salaryRange || "",
+        hiringBatch: hiringBatch || "",
+        applyLink: applyLink || "",
+        applicants: [],
+        createdBy: userId,
+      },
     })
 
-    const job = await db.collection("jobs").findOne({ _id: result.insertedId })
+    const job = await prisma.job.findUnique({ where: { id: created.id } })
     if (!job) return NextResponse.json({ error: "Failed to fetch created job" }, { status: 500 })
 
     const serialized = {
       ...job,
-      _id: job._id.toString(),
+      _id: job.id,
+      id: undefined,
       createdAt: job.createdAt?.toISOString(),
       updatedAt: job.updatedAt?.toISOString(),
       applicants: [],

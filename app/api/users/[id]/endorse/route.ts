@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const fromUserId = await verifyAuth(request)
     if (!fromUserId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
-    const { id } = params
+    const { id } = await params
 
     const body = await request.json()
     const { text } = body

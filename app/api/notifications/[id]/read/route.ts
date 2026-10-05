@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await verifyAuth(request)
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
-    const notifId = params.id
+    const { id: notifId } = await params
     if (!notifId) {
       return NextResponse.json({ error: "Invalid notification id" }, { status: 400 })
     }

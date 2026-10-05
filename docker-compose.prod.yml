@@ -9,9 +9,8 @@ services:
     ports:
       - "80:3000"
     environment:
-      # Use MongoDB Atlas for production
-      - MONGODB_URI=${MONGODB_URI}
-      - MONGODB_DB_NAME=college-linkedin
+      # Use a managed PostgreSQL (Neon/Supabase/RDS) for production
+      - DATABASE_URL=${DATABASE_URL}
       
       # JWT Secret (set in production)
       - JWT_SECRET=${JWT_SECRET}

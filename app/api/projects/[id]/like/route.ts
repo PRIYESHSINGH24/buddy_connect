@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json()
     const { userId } = body
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
 
-    const projectId = params.id
+    const { id: projectId } = await params
 
     const project = await prisma.project.findUnique({ where: { id: projectId } })
     if (!project) {

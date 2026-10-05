@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 // Get all events
@@ -19,37 +18,41 @@ export async function GET(request: NextRequest) {
     if (searchParams.get("upcoming") === "true") {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      filter.date = { $gte: today }
+      filter.date = { gte: today }
     }
 
-    const db = await getDatabase()
     const dbStart = performance.now()
-    const events = await db
-      .collection("college_events")
-      .find(filter, {
-        projection: {
-          title: 1,
-          description: 1,
-          date: 1,
-          time: 1,
-          location: 1,
-          organizer: 1,
-          attendees: 1,
-          category: 1,
-          image: 1,
-          registrationOpen: 1,
-          maxAttendees: 1,
-          createdAt: 1,
-        },
-      })
-      .sort({ date: 1 })
-      .limit(100)
-      .toArray()
+    const events = await prisma.collegeEvent.findMany({
+      where: filter,
+      orderBy: { date: "asc" },
+      take: 100,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        date: true,
+        time: true,
+        location: true,
+        organizer: true,
+        attendees: true,
+        category: true,
+        image: true,
+        registrationOpen: true,
+        maxAttendees: true,
+        createdAt: true,
+      },
+    })
     const dbDuration = performance.now() - dbStart
     const duration = performance.now() - start
     console.log(`[GET /api/events] ${duration.toFixed(2)}ms (db: ${dbDuration.toFixed(2)}ms), ${events.length} events`)
 
-    return NextResponse.json({ events }, {
+    const serialized = events.map((e) => ({
+      ...e,
+      _id: e.id,
+      id: undefined,
+    }))
+
+    return NextResponse.json({ events: serialized }, {
       status: 200,
       headers: {
         "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
@@ -168,24 +171,23 @@ export async function POST(request: NextRequest) {
     // COMBINE date + time into a single Date
     const eventDateTime = new Date(`${date}T${time || "00:00"}:00`)
 
-    const db = await getDatabase()
-    const result = await db.collection("college_events").insertOne({
-      title,
-      description,
-      date: eventDateTime,
-      time,
-      location,
-      organizer: new ObjectId(organizer),
-      attendees: [],
-      category,
-      image,
-      registrationOpen: true,
-      maxAttendees,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const event = await prisma.collegeEvent.create({
+      data: {
+        title,
+        description,
+        date: eventDateTime,
+        time,
+        location,
+        organizer,
+        attendees: [],
+        category,
+        image,
+        registrationOpen: true,
+        maxAttendees,
+      },
     })
 
-    return NextResponse.json({ message: "Event created successfully", eventId: result.insertedId }, { status: 201 })
+    return NextResponse.json({ message: "Event created successfully", eventId: event.id }, { status: 201 })
   } catch (error) {
     console.error("Create event error:", error)
     return NextResponse.json({ error: "Failed to create event" }, { status: 500 })

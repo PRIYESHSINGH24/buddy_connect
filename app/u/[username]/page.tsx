@@ -1,21 +1,22 @@
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 
 export default async function PublicUsernamePage({ params }: { params: { username: string } }) {
   const { username } = params
-  const db = await getDatabase()
-  const user = await db.collection("users").findOne({ username }, {
-    projection: {
-      name: 1,
-      profileImage: 1,
-      department: 1,
-      year: 1,
-      college: 1,
-      skills: 1,
-      bio: 1,
-      socials: 1,
-      featuredProjectIds: 1,
-    }
+  const found = await prisma.user.findUnique({
+    where: { username },
+    select: {
+      name: true,
+      profileImage: true,
+      department: true,
+      year: true,
+      college: true,
+      skills: true,
+      bio: true,
+      socials: true,
+      featuredProjectIds: true,
+    },
   })
+  const user = found ? { ...found, socials: (found.socials as any) || null } : null
 
   if (!user) {
     return (

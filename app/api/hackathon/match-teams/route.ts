@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { generateText } from "ai"
 // Use Google's Generative SDK when available
 import TextGenerationClient from "@google-ai/generativelanguage"
@@ -14,21 +13,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User ID and skills are required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-
     // Get current user
-    const currentUser = await db.collection("users").findOne({ _id: new ObjectId(userId) })
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } })
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
     // Get other users for matching
-    const otherUsers = await db
-      .collection("users")
-      .find({ _id: { $ne: new ObjectId(userId) } })
-      .limit(50)
-      .toArray()
+    const otherUsers = await prisma.user.findMany({
+      where: { NOT: { id: userId } },
+      take: 50,
+    })
 
     // Create AI prompt for team matching
     const prompt = `You are a hackathon team matching expert. Match the following user with the best team members from the available pool.
@@ -186,7 +182,7 @@ Return a JSON array with user names and a brief reason for each selection in thi
         const userMatch = otherUsers.find((u) => u.name.toLowerCase() === match.name.toLowerCase())
         return userMatch
           ? {
-              _id: userMatch._id?.toString(),
+              _id: userMatch.id,
               name: userMatch.name,
               email: userMatch.email,
               skills: userMatch.skills,
@@ -203,7 +199,7 @@ Return a JSON array with user names and a brief reason for each selection in thi
         message: "Teams matched successfully",
         teamMembers: enrichedMatches,
         currentUser: {
-          _id: currentUser._id?.toString(),
+          _id: currentUser.id,
           name: currentUser.name,
           skills: currentUser.skills,
         },

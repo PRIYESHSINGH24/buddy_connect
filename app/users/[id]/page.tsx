@@ -1,29 +1,30 @@
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 
 export default async function UserProfilePage({ params }: { params: { id: string } }) {
   const { id } = params
-  const db = await getDatabase()
-  const user = await db.collection("users").findOne({ _id: new ObjectId(id) }, {
-    projection: {
-      name: 1,
-      profileImage: 1,
-      department: 1,
-      year: 1,
-      college: 1,
-      skills: 1,
-      bio: 1,
-      experience: 1,
-      education: 1,
-      projects: 1,
-      certifications: 1,
-      contact: 1,
-      socials: 1,
-      username: 1,
-      featuredProjectIds: 1,
-      endorsements: 1,
-    }
+  const found = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      profileImage: true,
+      department: true,
+      year: true,
+      college: true,
+      skills: true,
+      bio: true,
+      experience: true,
+      education: true,
+      projects: true,
+      certifications: true,
+      contact: true,
+      socials: true,
+      username: true,
+      featuredProjectIds: true,
+      endorsements: true,
+    },
   })
+  const user = found ? { ...found, socials: (found.socials as any) || null } : null
 
   if (!user) {
     return (
@@ -97,7 +98,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
       {/* Featured Projects */}
       {user.featuredProjectIds && user.featuredProjectIds.length > 0 && (
-        <FeaturedProjects ids={user.featuredProjectIds.map((o:any)=>o.toString())} />
+        <FeaturedProjects ids={user.featuredProjectIds} />
       )}
 
     </main>
@@ -106,17 +107,18 @@ export default async function UserProfilePage({ params }: { params: { id: string
 
 // Server component to render featured projects minimal list
 async function FeaturedProjects({ ids }: { ids: string[] }) {
-  const db = await getDatabase()
-  const objectIds = ids.filter((id)=> ObjectId.isValid(id)).map((id)=> new ObjectId(id))
-  if (objectIds.length === 0) return null
-  const projects = await db.collection("projects").find({ _id: { $in: objectIds } }).project({ title: 1, description: 1, githubUrl: 1 }).toArray()
+  if (ids.length === 0) return null
+  const projects = await prisma.project.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, title: true, description: true, githubUrl: true },
+  })
   if (projects.length === 0) return null
   return (
     <section className="mt-6">
       <h2 className="font-semibold">Featured Projects</h2>
       <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {projects.map((p:any)=> (
-          <a key={p._id.toString()} href={p.githubUrl} target="_blank" className="block border rounded p-3 hover:bg-accent/30">
+        {projects.map((p) => (
+          <a key={p.id} href={p.githubUrl} target="_blank" className="block border rounded p-3 hover:bg-accent/30">
             <div className="font-medium">{p.title}</div>
             {p.description && <div className="text-sm text-muted-foreground line-clamp-3">{p.description}</div>}
           </a>
