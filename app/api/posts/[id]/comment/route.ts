@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
   try {
@@ -11,25 +10,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const db = await getDatabase()
     const resolvedParams = params && typeof params.then === "function" ? await params : params
-    const postId = new ObjectId(resolvedParams.id)
-    const comment = {
-      _id: new ObjectId(),
-      userId: new ObjectId(userId),
-      author,
-      content,
-      createdAt: new Date(),
+    const postId = resolvedParams.id as string
+
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } })
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 })
     }
 
-    // Push the new comment onto the post's comments array
-    await db.collection("posts").updateOne({ _id: postId }, { $push: { comments: comment } as any } as any)
+    const comment = await prisma.comment.create({
+      data: {
+        postId,
+        userId,
+        author,
+        content,
+      },
+    })
 
     // Return a serialized comment to the client
     const serialized = {
-      ...comment,
-      _id: comment._id.toString(),
-      userId: comment.userId.toString(),
+      _id: comment.id,
+      userId: comment.userId,
+      author: comment.author,
+      content: comment.content,
       createdAt: comment.createdAt.toISOString(),
     }
 

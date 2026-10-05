@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
   try {
@@ -11,30 +10,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
     // `params` may be a Promise in some Next.js runtimes — await to unwrap safely
     const resolvedParams = params && typeof params.then === "function" ? await params : params
-    const postId = new ObjectId(resolvedParams.id)
-    const userObjectId = new ObjectId(userId)
+    const postId = resolvedParams.id as string
 
-    const post = await db.collection("posts").findOne({ _id: postId })
+    const post = await prisma.post.findUnique({ where: { id: postId } })
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 })
     }
 
-    const isLiked = post.likes?.some((id: ObjectId) => id.equals(userObjectId))
+    const isLiked = (post.likes || []).includes(userId)
 
-    if (isLiked) {
-      // If already liked, remove the like
-      await db.collection("posts").updateOne({ _id: postId }, { $pull: { likes: userObjectId as any } as any } as any)
-    } else {
-      // Use $addToSet to avoid duplicates (idempotent insert)
-      await db.collection("posts").updateOne({ _id: postId }, { $addToSet: { likes: userObjectId as any } as any } as any)
-    }
+    // Toggle like (read-modify-write on the likes array)
+    const updated = await prisma.post.update({
+      where: { id: postId },
+      data: {
+        likes: isLiked
+          ? { set: post.likes.filter((id) => id !== userId) }
+          : { push: userId },
+      },
+      select: { likes: true },
+    })
 
     // Return updated likes as strings so client can update UI without refetch
-    const updated = await db.collection("posts").findOne({ _id: postId })
-    const likes = (updated?.likes || []).map((id: any) => id.toString())
+    const likes = updated.likes || []
 
     return NextResponse.json({ message: "Like toggled successfully", likes }, { status: 200 })
   } catch (error) {

@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 import { cacheFetch, cacheDelete } from "@/lib/redis"
 
@@ -13,52 +12,51 @@ export async function GET(request: NextRequest) {
     const before = searchParams.get("cursor")
     const limit = Math.min(Math.max(limitParam, 1), 50)
 
-    const db = await getDatabase()
     const query: any = {}
     if (before) {
       const beforeDate = new Date(before)
       if (!isNaN(beforeDate.getTime())) {
-        query.createdAt = { $lt: beforeDate }
+        query.createdAt = { lt: beforeDate }
       }
     }
 
     const dbStart = performance.now()
-    const posts = await db
-      .collection("posts")
-      .find(query, {
-        projection: {
-          userId: 1,
-          author: 1,
-          authorImage: 1,
-          content: 1,
-          image: 1,
-          "attachments.name": 1,
-          "attachments.type": 1,
-          "attachments.size": 1,
-          likes: 1,
-          comments: { $slice: 5 }, // Only fetch first 5 comments
-          createdAt: 1,
+    const posts = await prisma.post.findMany({
+      where: query,
+      orderBy: { createdAt: "desc" },
+      take: limit + 1,
+      select: {
+        id: true,
+        userId: true,
+        author: true,
+        authorImage: true,
+        content: true,
+        image: true,
+        attachments: true,
+        likes: true,
+        comments: {
+          orderBy: { createdAt: "asc" },
+          take: 5, // Only fetch first 5 comments
+          select: { id: true, userId: true, author: true, content: true, createdAt: true },
         },
-      })
-      .sort({ createdAt: -1 })
-      .limit(limit + 1)
-      .maxTimeMS(10000) // 10s timeout
-      .toArray()
+        createdAt: true,
+      },
+    })
     const dbDuration = performance.now() - dbStart
 
-    // Serialize ObjectId and Date fields so the client receives simple JSON
-    const serialized = posts.slice(0, limit).map((p: any) => ({
+    // Serialize so the client receives simple JSON (frontend contract uses `_id`)
+    const serialized = posts.slice(0, limit).map((p) => ({
       ...p,
-      _id: p._id?.toString(),
-      userId: p.userId?.toString(),
-      likes: (p.likes || []).map((id: any) => id?.toString()),
-      comments: (p.comments || []).map((c: any) => ({
+      _id: p.id,
+      id: undefined,
+      likes: p.likes || [],
+      comments: (p.comments || []).map((c) => ({
         ...c,
-        _id: c._id?.toString(),
-        userId: c.userId?.toString(),
+        _id: c.id,
+        id: undefined,
         createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
       })),
-      attachments: p.attachments || [],
+      attachments: (p.attachments as any[] | null) || [],
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : null,
     }))
 
@@ -150,23 +148,21 @@ export async function POST(request: NextRequest) {
           .filter((file) => file.data && file.size <= 5 * 1024 * 1024)
       : []
 
-    const db = await getDatabase()
-    const result = await db.collection("posts").insertOne({
-      userId: new ObjectId(effectiveUserId),
-      author,
-      authorImage,
-      content: content.slice(0, 5000), // Max 5000 chars
-      attachments: sanitizedAttachments,
-      likes: [],
-      comments: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const post = await prisma.post.create({
+      data: {
+        userId: effectiveUserId,
+        author,
+        authorImage,
+        content: content.slice(0, 5000), // Max 5000 chars
+        attachments: sanitizedAttachments,
+        likes: [],
+      },
     })
 
     // Invalidate feed cache on new post
     cacheDelete("posts:firstpage").catch(() => {})
 
-    return NextResponse.json({ message: "Post created", postId: result.insertedId }, { status: 201 })
+    return NextResponse.json({ message: "Post created", postId: post.id }, { status: 201 })
   } catch (error) {
     console.error("Create post error:", error)
     return NextResponse.json({ error: "Failed to create post" }, { status: 500 })

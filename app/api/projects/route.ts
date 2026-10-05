@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 // Get all projects (paginated)
@@ -13,44 +12,42 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get("userId")
     const limit = Math.min(Math.max(limitParam, 1), 50)
 
-    const db = await getDatabase()
     const query: any = {}
     if (before) {
       const beforeDate = new Date(before)
       if (!isNaN(beforeDate.getTime())) {
-        query.createdAt = { $lt: beforeDate }
+        query.createdAt = { lt: beforeDate }
       }
     }
-    if (userId && ObjectId.isValid(userId)) {
-      query.userId = new ObjectId(userId)
+    if (userId) {
+      query.userId = userId
     }
 
     const dbStart = performance.now()
-    const projects = await db
-      .collection("projects")
-      .find(query, {
-        projection: {
-          userId: 1,
-          author: 1,
-          title: 1,
-          description: 1,
-          technologies: 1,
-          image: 1,
-          likes: 1,
-          createdAt: 1,
-        },
-      })
-      .sort({ createdAt: -1 })
-      .limit(limit + 1) // +1 to check if more exist
-      .toArray()
+    const projects = await prisma.project.findMany({
+      where: query,
+      orderBy: { createdAt: "desc" },
+      take: limit + 1, // +1 to check if more exist
+      select: {
+        id: true,
+        userId: true,
+        author: true,
+        title: true,
+        description: true,
+        technologies: true,
+        image: true,
+        likes: true,
+        createdAt: true,
+      },
+    })
     const dbDuration = performance.now() - dbStart
 
     // serialize
-    const serialized = projects.slice(0, limit).map((p: any) => ({
+    const serialized = projects.slice(0, limit).map((p) => ({
       ...p,
-      _id: p._id?.toString(),
-      userId: p.userId?.toString?.(),
-      likes: (p.likes || []).map((id: any) => id?.toString?.()),
+      _id: p.id,
+      id: undefined,
+      likes: p.likes || [],
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : null,
     }))
 
@@ -156,21 +153,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const result = await db.collection("projects").insertOne({
-      userId: new ObjectId(userId),
-      author,
-      title,
-      description,
-      githubUrl,
-      technologies: technologies || [],
-      image,
-      likes: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    const project = await prisma.project.create({
+      data: {
+        userId,
+        author,
+        title,
+        description,
+        githubUrl,
+        technologies: technologies || [],
+        image,
+        likes: [],
+      },
     })
 
-    return NextResponse.json({ message: "Project created", projectId: result.insertedId }, { status: 201 })
+    return NextResponse.json({ message: "Project created", projectId: project.id }, { status: 201 })
   } catch (error) {
     console.error("Create project error:", error)
     return NextResponse.json({ error: "Failed to create project" }, { status: 500 })

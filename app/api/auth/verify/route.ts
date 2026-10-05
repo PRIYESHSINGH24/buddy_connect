@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,15 +7,12 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token')
     if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
-    const db = await getDatabase()
-    const result = await db.collection('users').findOneAndUpdate(
-      { verificationToken: token },
-      { $set: { emailVerified: true }, $unset: { verificationToken: "" } },
-      { returnDocument: 'after' }
-    )
+    const result = await prisma.user.updateMany({
+      where: { verificationToken: token },
+      data: { emailVerified: true, verificationToken: null },
+    })
 
-    const doc = (result as any)?.value || result
-    if (!doc) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
+    if (result.count === 0) return NextResponse.json({ error: 'Invalid token' }, { status: 400 })
 
     return NextResponse.json({ ok: true })
   } catch (e) {

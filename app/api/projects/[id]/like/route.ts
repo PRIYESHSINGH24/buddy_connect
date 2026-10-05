@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -11,22 +10,23 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    const projectId = new ObjectId(params.id)
-    const userObjectId = new ObjectId(userId)
+    const projectId = params.id
 
-    const project = await db.collection("projects").findOne({ _id: projectId })
+    const project = await prisma.project.findUnique({ where: { id: projectId } })
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
 
-    const isLiked = project.likes?.some((id: ObjectId) => id.equals(userObjectId))
+    const isLiked = (project.likes || []).includes(userId)
 
-    if (isLiked) {
-      await db.collection("projects").updateOne({ _id: projectId }, { $pull: { likes: userObjectId } as any })
-    } else {
-      await db.collection("projects").updateOne({ _id: projectId }, { $push: { likes: userObjectId } as any })
-    }
+    await prisma.project.update({
+      where: { id: projectId },
+      data: {
+        likes: isLiked
+          ? { set: project.likes.filter((id) => id !== userId) }
+          : { push: userId },
+      },
+    })
 
     return NextResponse.json({ message: "Like toggled successfully" }, { status: 200 })
   } catch (error) {

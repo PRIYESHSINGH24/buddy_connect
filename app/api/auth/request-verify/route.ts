@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
 
 function randomToken() {
@@ -11,9 +11,8 @@ export async function POST(request: NextRequest) {
     const userId = await verifyAuth(request)
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
 
-    const db = await getDatabase()
     const token = randomToken()
-    await db.collection("users").updateOne({ _id: new (require("mongodb").ObjectId)(userId) }, { $set: { verificationToken: token } })
+    await prisma.user.update({ where: { id: userId }, data: { verificationToken: token } })
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
     const link = `${appUrl}/api/auth/verify?token=${token}`

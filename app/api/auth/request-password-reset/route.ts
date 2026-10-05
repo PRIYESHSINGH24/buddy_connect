@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
+import { prisma } from "@/lib/prisma"
 
 function randomToken() {
   return [...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('')
@@ -10,10 +10,9 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json()
     if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
 
-    const db = await getDatabase()
     const token = randomToken()
     const expires = new Date(Date.now() + 1000 * 60 * 30) // 30 minutes
-    await db.collection('users').updateOne({ email: email.toLowerCase() }, { $set: { resetToken: token, resetTokenExpires: expires } })
+    await prisma.user.updateMany({ where: { email: email.toLowerCase() }, data: { resetToken: token, resetTokenExpires: expires } })
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
     const link = `${appUrl}/reset-password?token=${token}`

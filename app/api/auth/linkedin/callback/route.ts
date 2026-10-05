@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 import { signToken } from "@/lib/auth"
 
 const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID || ""
@@ -63,45 +62,43 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user exists, create if not
-    const db = await getDatabase()
-    let user = await db.collection("users").findOne({ email: email.toLowerCase() })
+    let user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+    let userId: string
 
     if (!user) {
       // Create new user from LinkedIn profile
-      const result = await db.collection("users").insertOne({
-        email: email.toLowerCase(),
-        password: "", // OAuth users don't have passwords
-        name,
-        college: "",
-        department: "",
-        year: "",
-        skills: [],
-        bio: "",
-        interests: [],
-        linkedinUrl: profile.sub ? `https://www.linkedin.com/in/${profile.sub}` : "",
-        profileImage: profile.picture || "",
-        emailVerified: true, // LinkedIn already verified
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      const created = await prisma.user.create({
+        data: {
+          email: email.toLowerCase(),
+          password: "", // OAuth users don't have passwords
+          name,
+          college: "",
+          department: "",
+          year: "",
+          skills: [],
+          bio: "",
+          interests: [],
+          linkedinUrl: profile.sub ? `https://www.linkedin.com/in/${profile.sub}` : "",
+          profileImage: profile.picture || "",
+          emailVerified: true, // LinkedIn already verified
+        },
       })
-      user = { _id: result.insertedId, email: email.toLowerCase() }
+      userId = created.id
     } else {
       // Update existing user with LinkedIn data
-      await db.collection("users").updateOne(
-        { _id: user._id },
-        {
-          $set: {
-            linkedinUrl: profile.sub ? `https://www.linkedin.com/in/${profile.sub}` : user.linkedinUrl,
-            profileImage: profile.picture || user.profileImage,
-            emailVerified: true,
-            updatedAt: new Date(),
-          },
-        }
-      )
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          linkedinUrl: profile.sub ? `https://www.linkedin.com/in/${profile.sub}` : user.linkedinUrl,
+          profileImage: profile.picture || user.profileImage,
+          emailVerified: true,
+        },
+      })
+      userId = user.id
     }
 
     // Sign JWT and set cookie
-    const token = await signToken({ userId: user._id?.toString(), email })
+    const token = await signToken({ userId, email })
 
     const response = NextResponse.redirect(new URL("/dashboard", APP_URL))
     response.cookies.set("auth_token", token, {

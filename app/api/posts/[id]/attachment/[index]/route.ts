@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getDatabase } from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(
   request: NextRequest,
@@ -14,19 +13,18 @@ export async function GET(
       return NextResponse.json({ error: "Invalid attachment index" }, { status: 400 })
     }
 
-    const db = await getDatabase()
-    
-    // Fetch ONLY the specific attachment to save memory
-    const post = await db.collection("posts").findOne(
-      { _id: new ObjectId(id) },
-      { projection: { [`attachments.${attachmentIndex}`]: 1 } }
-    )
+    // Fetch ONLY the attachments column to save memory
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { attachments: true },
+    })
 
-    if (!post || !post.attachments || !post.attachments[attachmentIndex]) {
+    const attachments = ((post?.attachments as any[]) || [])
+    const file = attachments[attachmentIndex]
+
+    if (!file) {
       return NextResponse.json({ error: "Attachment not found" }, { status: 404 })
     }
-
-    const file = post.attachments[attachmentIndex]
     
     if (!file.data || typeof file.data !== 'string') {
         return NextResponse.json({ error: "Invalid attachment data" }, { status: 500 })
