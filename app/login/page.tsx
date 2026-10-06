@@ -1,6 +1,7 @@
 import React, { Suspense } from "react"
 import LoginForm from "@/components/auth/login-form"
 import BeautifulLoader from "@/components/ui/beautiful-loader"
+import BuddyEyes from "@/components/buddy-eyes"
 import Link from "next/link"
 import { Sparkles, Users, Code2, Rocket } from "lucide-react"
 
@@ -16,7 +17,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 max-w-md px-12 text-white space-y-8 page-enter">
           <Link href="/" className="inline-flex items-center gap-3">
-            <img src="/buddy-logo.svg" alt="Buddy Connect" className="w-14 h-14 brightness-0 invert" />
+            <BuddyEyes href={null} showLabel={false} size={56} />
             <span className="text-2xl font-bold tracking-tight">Buddy Connect</span>
           </Link>
 
@@ -57,7 +58,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col bg-gradient-to-br from-primary/5 via-background to-accent/5">
         {/* Mobile branding header */}
         <div className="lg:hidden flex items-center gap-3 px-6 pt-6 pb-2 animate-fade-in">
-          <img src="/buddy-logo.svg" alt="Buddy Connect" className="w-10 h-10" />
+          <BuddyEyes href={null} showLabel={false} size={40} />
           <span className="text-lg font-bold text-foreground">Buddy Connect</span>
         </div>
 

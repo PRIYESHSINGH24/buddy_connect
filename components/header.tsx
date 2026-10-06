@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
+import BuddyEyes from "@/components/buddy-eyes"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -64,9 +64,7 @@ export default function Header() {
   return (
     <nav className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href={logoHref} className="inline-flex items-center" aria-label="Buddy Connect home">
-          <img src="/buddy-logo.svg" alt="Buddy Connect" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
-        </Link>
+        <BuddyEyes href={logoHref} showLabel={false} size={44} className="[&_svg]:w-10 [&_svg]:h-10 md:[&_svg]:w-12 md:[&_svg]:h-12" />
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-4 items-center">
@@ -155,7 +153,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="p-4">
               <Link href={logoHref} className="inline-flex items-center mb-4" aria-label="Buddy Connect home">
-                <img src="/buddy-logo.svg" alt="Buddy Connect" className="w-10 h-10 object-contain" />
+                <BuddyEyes href={null} showLabel={false} size={40} />
               </Link>
               <div className="flex flex-col gap-2">
                 <Link href="/dashboard"><Button variant="ghost" className="justify-start gap-2"><Home className="w-4 h-4" />Feed</Button></Link>

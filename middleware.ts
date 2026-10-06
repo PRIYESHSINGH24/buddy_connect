@@ -33,6 +33,14 @@ const PUBLIC_PATHS: Array<(path: string) => boolean> = [
   (p) => p.startsWith("/_next"),
   (p) => p === "/favicon.ico",
   (p) => p === "/logo.svg",
+  (p) => p === "/buddy-logo.svg",
+  (p) => p === "/placeholder-logo.svg",
+  (p) => p === "/placeholder.svg",
+  (p) => p.endsWith(".png"),
+  (p) => p.endsWith(".svg"),
+  (p) => p.endsWith(".jpg"),
+  (p) => p.endsWith(".jpeg"),
+  (p) => p.endsWith(".webp"),
 ]
 
 function isPublicPath(pathname: string): boolean {

@@ -171,8 +171,9 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Invalidate all cached first pages (key includes limit) on new post
-    cacheDeletePattern("posts:firstpage*").catch(() => {})
+    // Invalidate all cached first pages (key includes limit) on new post.
+    // Awaited so a read immediately after the write sees fresh data (E2E + fast UI refresh).
+    await cacheDeletePattern("posts:firstpage*").catch(() => {})
 
     return NextResponse.json({ message: "Post created", postId: post.id }, { status: 201 })
   } catch (error) {

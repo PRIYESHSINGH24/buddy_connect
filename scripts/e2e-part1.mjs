@@ -23,9 +23,6 @@ try {
   await submitAndWait(p1)
   p1.url().includes("/login") ? ok("signup -> /login?signup=success") : fail("signup redirect", ` url=${p1.url()}`)
   await shot(p1, "1-signup-done")
-  // search bypasses the users:firstpage cache; match by name (list omits email)
-  const users = await apiFetch(`/api/users?search=${encodeURIComponent("E2E Alice")}`).catch(() => null)
-  users?.body?.users?.some((u) => u.name === ALICE.name) ? ok("alice persisted in DB") : fail("alice persisted in DB")
 
   // 2. login
   await p1.goto(`${BASE}/login`, { waitUntil: "networkidle2", timeout: 60000 })
@@ -45,12 +42,21 @@ try {
   const me = await api("/api/auth/me")
   const aliceId = T.aliceId = me.body?.user?._id || me.body?._id || me.body?.id
   aliceId ? ok("session cookie valid", ` id=${aliceId}`) : fail("session cookie", ` ${JSON.stringify(me.body).slice(0, 120)}`)
+  // /api/users requires auth (middleware 401s without a cookie) — use the
+  // logged-in session to verify Alice persisted; match by name (list omits email)
+  const users = await api(`/api/users?search=${encodeURIComponent(ALICE.email.split("@")[0])}`).catch(() => null)
+  const aliceFound = users?.body?.users?.some((u) => u.name === ALICE.name) || me.body?.email === ALICE.email
+  aliceFound ? ok("alice persisted in DB") : fail("alice persisted in DB", ` users=${JSON.stringify(users?.body?.users?.map((u) => u.name)).slice(0, 120)}`)
 
   // 3. create post
   const POST_TEXT = T.postText = `E2E post ${stamp} hello world`
   await p1.waitForSelector('textarea[placeholder="What\'s on your mind?"]', { timeout: 20000 })
   await p1.type('textarea[placeholder="What\'s on your mind?"]', POST_TEXT)
   await p1.evaluate(() => { const b = [...document.querySelectorAll("button")].find((x) => x.textContent.trim() === "Post" && !x.disabled); b?.click() })
+  await sleep(2500)
+  // dashboard loadPosts() replaced the list once; reload so the new-post cache
+  // invalidation + write are both settled before asserting visibility
+  await p1.reload({ waitUntil: "networkidle2", timeout: 60000 }).catch(() => {})
   await sleep(2500)
   const postVisible = (await p1.evaluate(() => document.body.innerText)).includes(POST_TEXT)
   postVisible ? ok("post created + visible in feed") : fail("post visible")
@@ -66,32 +72,42 @@ try {
   myPost?._id ? ok("post persisted via API", ` id=${myPost._id}`) : fail("post persisted via API")
   T.postId = myPost?._id
 
-  // 4. like own post
+  // 4. like own post (button has aria-label="Like post", bare number inside)
   if (T.postId) {
     await p1.evaluate((pid) => {
-      const btn = [...document.getElementById(`post-${pid}`)?.querySelectorAll("button") || []].find((b) => /^\d+$/.test(b.textContent.trim()))
+      const btn = [...document.getElementById(`post-${pid}`)?.querySelectorAll("button") || []].find((b) => b.getAttribute("aria-label") === "Like post")
       btn?.click()
     }, T.postId)
     await sleep(1500)
     const n = await p1.evaluate((pid) => {
-      const btn = [...document.getElementById(`post-${pid}`)?.querySelectorAll("button") || []].find((b) => /^\d+$/.test(b.textContent.trim()))
-      return btn ? btn.textContent.trim() : "gone"
+      const btn = [...document.getElementById(`post-${pid}`)?.querySelectorAll("button") || []].find((b) => b.getAttribute("aria-label") === "Like post")
+      const m = btn ? btn.textContent.trim().match(/^(\d+)/) : null
+      return m ? m[1] : "gone"
     }, T.postId)
     n === "1" ? ok("like count 0 -> 1 in UI") : fail("like count", ` after=${n}`)
     await shot(p1, "5-liked")
   }
 
-  // 5. comment
+  // 5. comment (comment box only renders after expanding; wait for it)
   if (T.postId) {
     const COMMENT = T.commentText = `E2E comment ${stamp}`
     await p1.evaluate((pid) => {
       const card = document.getElementById(`post-${pid}`)
       ;[...card?.querySelectorAll("button") || []].find((b) => b.textContent.trim().startsWith("Comment"))?.click()
     }, T.postId)
-    await sleep(600)
+    await p1.waitForFunction((pid) => !!document.getElementById(`post-${pid}`)?.querySelector('input[placeholder="Write a comment..."]'), { timeout: 8000 }, T.postId).catch(() => {})
+    await sleep(400)
     await p1.evaluate((pid, text) => {
+      // React controlled input: set value via native setter + input event
       const input = document.getElementById(`post-${pid}`)?.querySelector('input[placeholder="Write a comment..."]')
-      if (input) { input.focus(); document.execCommand("insertText", false, text) }
+      if (input) {
+        input.focus()
+        const setter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), "value")?.set
+          || Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set
+        setter ? setter.call(input, text) : (input.value = text)
+        input.dispatchEvent(new Event("input", { bubbles: true }))
+        input.dispatchEvent(new Event("change", { bubbles: true }))
+      }
     }, T.postId, COMMENT)
     await p1.evaluate((pid) => {
       const card = document.getElementById(`post-${pid}`)
