@@ -87,6 +87,7 @@
     "dotenv": "^18.0.5",
     "postcss": "^8.5",
     "prisma": "7.10.0",
+    "puppeteer-core": "^25.12.0",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"

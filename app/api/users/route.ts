@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")
     const limit = Math.min(Math.max(limitParam, 1), 50)
 
-    // Cache first page (no cursor, no search) for 60 seconds
-    const cacheKey = !cursor && !search ? "users:firstpage" : null
+    // Cache first page (no cursor, no search) for 60 seconds — key includes limit
+    const cacheKey = !cursor && !search ? `users:firstpage:${limit}` : null
     
     const fetchUsers = async () => {
       const query: any = {}

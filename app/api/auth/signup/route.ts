@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createUser, getUserByEmail } from "@/lib/auth-utils"
+import { cacheDeletePattern } from "@/lib/redis"
 import type { User } from "@/lib/db-schemas"
 
 export async function POST(request: NextRequest) {
@@ -30,6 +31,9 @@ export async function POST(request: NextRequest) {
       bio: "",
       interests: [],
     } as Omit<User, "_id" | "createdAt" | "updatedAt">)
+
+    // New user must appear in /api/users immediately — drop cached first pages
+    cacheDeletePattern("users:firstpage*").catch(() => {})
 
     return NextResponse.json({ message: "User created successfully", userId }, { status: 201 })
   } catch (error) {

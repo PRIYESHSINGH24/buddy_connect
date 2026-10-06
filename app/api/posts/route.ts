@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
-import { cacheFetch, cacheDelete } from "@/lib/redis"
+import { cacheFetch, cacheDeletePattern } from "@/lib/redis"
 
 // Get all posts
 export async function GET(request: NextRequest) {
@@ -171,8 +171,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Invalidate feed cache on new post
-    cacheDelete("posts:firstpage").catch(() => {})
+    // Invalidate all cached first pages (key includes limit) on new post
+    cacheDeletePattern("posts:firstpage*").catch(() => {})
 
     return NextResponse.json({ message: "Post created", postId: post.id }, { status: 201 })
   } catch (error) {
