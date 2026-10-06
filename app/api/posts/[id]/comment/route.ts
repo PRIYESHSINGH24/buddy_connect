@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { cacheDeletePattern } from "@/lib/redis"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
   try {
@@ -26,6 +27,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         content,
       },
     })
+
+    // Comments are embedded in the cached feed — invalidate first page
+    cacheDeletePattern("posts:firstpage*").catch(() => {})
 
     // Return a serialized comment to the client
     const serialized = {

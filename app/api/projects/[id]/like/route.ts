@@ -12,21 +12,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { id: projectId } = await params
 
-    const project = await prisma.project.findUnique({ where: { id: projectId } })
-    if (!project) {
+    // Atomic toggle (single UPDATE) — no read-modify-write race under concurrency
+    const rows = await prisma.$queryRaw<{ id: string }[]>`
+      UPDATE "Project"
+      SET "likes" = CASE
+        WHEN "likes" @> ARRAY[${userId}]::text[] THEN array_remove("likes", ${userId})
+        ELSE array_append("likes", ${userId})
+      END
+      WHERE "id" = ${projectId}
+      RETURNING "id"
+    `
+
+    if (rows.length === 0) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
-
-    const isLiked = (project.likes || []).includes(userId)
-
-    await prisma.project.update({
-      where: { id: projectId },
-      data: {
-        likes: isLiked
-          ? { set: project.likes.filter((id) => id !== userId) }
-          : { push: userId },
-      },
-    })
 
     return NextResponse.json({ message: "Like toggled successfully" }, { status: 200 })
   } catch (error) {

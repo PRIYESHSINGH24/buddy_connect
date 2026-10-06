@@ -11,14 +11,26 @@ services:
     environment:
       # Use a managed PostgreSQL (Neon/Supabase/RDS) for production
       - DATABASE_URL=${DATABASE_URL}
+      # Prisma pool size per instance (keep total below Postgres max_connections)
+      - DB_POOL_MAX=${DB_POOL_MAX:-20}
       
       # JWT Secret (set in production)
       - JWT_SECRET=${JWT_SECRET}
+
+      # Redis cache — local service below (fallback), Upstash REST takes precedence
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL:-}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN:-}
       
       # Environment
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
-    
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
     networks:
       - buddy-network
     
@@ -45,6 +57,27 @@ services:
       retries: 3
       start_period: 30s
 
+  # ─── Redis (cache) ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: buddy-connect-redis-prod
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - buddy-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 networks:
   buddy-network:
     driver: bridge
+
+volumes:
+  redis_data:
+    driver: local

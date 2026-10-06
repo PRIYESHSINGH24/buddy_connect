@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { verifyAuth } from "@/lib/auth"
+import { cacheDelete } from "@/lib/redis"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
   try {
@@ -16,51 +17,54 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (!requesterId || !action) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
 
+    // Existence check only (index-only reads)
     const [target, requester] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: targetId },
-        select: { connections: true, incomingRequests: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: requesterId },
-        select: { connections: true, outgoingRequests: true },
-      }),
+      prisma.user.findUnique({ where: { id: targetId }, select: { id: true } }),
+      prisma.user.findUnique({ where: { id: requesterId }, select: { id: true } }),
     ])
     if (!target || !requester) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
     if (action === "accept") {
-      // Add each other as connections and remove pending requests
+      // All array moves happen atomically inside the UPDATEs
+      // (append-if-missing + array_remove) — parallel accepts can't lose connections.
       await prisma.$transaction([
-        prisma.user.update({
-          where: { id: targetId },
-          data: {
-            connections: { set: Array.from(new Set([...(target.connections || []), requesterId])) },
-            incomingRequests: { set: (target.incomingRequests || []).filter((id) => id !== requesterId) },
-          },
-        }),
-        prisma.user.update({
-          where: { id: requesterId },
-          data: {
-            connections: { set: Array.from(new Set([...(requester.connections || []), targetId])) },
-            outgoingRequests: { set: (requester.outgoingRequests || []).filter((id) => id !== targetId) },
-          },
-        }),
+        prisma.$executeRaw`
+          UPDATE "User"
+          SET "connections" = CASE
+                WHEN "connections" @> ARRAY[${requesterId}]::text[] THEN "connections"
+                ELSE array_append("connections", ${requesterId})
+              END,
+              "incomingRequests" = array_remove("incomingRequests", ${requesterId})
+          WHERE "id" = ${targetId}
+        `,
+        prisma.$executeRaw`
+          UPDATE "User"
+          SET "connections" = CASE
+                WHEN "connections" @> ARRAY[${targetId}]::text[] THEN "connections"
+                ELSE array_append("connections", ${targetId})
+              END,
+              "outgoingRequests" = array_remove("outgoingRequests", ${targetId})
+          WHERE "id" = ${requesterId}
+        `,
       ])
+
+      // Conversation-gate cache for this pair is now stale
+      cacheDelete(`conn:${[targetId, requesterId].sort().join(":")}`).catch(() => {})
 
       return NextResponse.json({ message: "Connection accepted" }, { status: 200 })
     }
 
-    // decline
+    // decline (array_remove is idempotent under concurrency)
     if (action === "decline") {
       await prisma.$transaction([
-        prisma.user.update({
-          where: { id: targetId },
-          data: { incomingRequests: { set: (target.incomingRequests || []).filter((id) => id !== requesterId) } },
-        }),
-        prisma.user.update({
-          where: { id: requesterId },
-          data: { outgoingRequests: { set: (requester.outgoingRequests || []).filter((id) => id !== targetId) } },
-        }),
+        prisma.$executeRaw`
+          UPDATE "User" SET "incomingRequests" = array_remove("incomingRequests", ${requesterId})
+          WHERE "id" = ${targetId}
+        `,
+        prisma.$executeRaw`
+          UPDATE "User" SET "outgoingRequests" = array_remove("outgoingRequests", ${targetId})
+          WHERE "id" = ${requesterId}
+        `,
       ])
 
       return NextResponse.json({ message: "Connection declined" }, { status: 200 })

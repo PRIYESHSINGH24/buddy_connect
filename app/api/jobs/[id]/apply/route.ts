@@ -13,18 +13,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const job = await prisma.job.findUnique({ where: { id: jobId } })
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 })
 
-    // Add applicant if not present
-    const applicants = job.applicants || []
-    if (!applicants.includes(userId)) {
-      await prisma.job.update({
-        where: { id: jobId },
-        data: { applicants: { push: userId } },
-      })
-    }
+    // Conditional update (append only if missing) is atomic at the SQL level —
+    // parallel applies from different users can't duplicate or lose entries.
+    // applicant lookup runs in parallel with the update.
+    const [updatedJob, applicant] = await Promise.all([
+      prisma.job
+        .update({
+          where: { id: jobId, NOT: { applicants: { has: userId } } },
+          data: { applicants: { push: userId } },
+        })
+        .catch(async (e: { code?: string }) => {
+          // P2025: already applied (or job deleted) — return current state
+          if (e?.code === "P2025") return prisma.job.findUnique({ where: { id: jobId } })
+          throw e
+        }),
+      getUserById(userId),
+    ])
+    if (!updatedJob) return NextResponse.json({ error: "Job not found" }, { status: 404 })
 
     // Create a notification for the job creator
     try {
-      const applicant = await getUserById(userId)
       const applicantName = applicant?.name || "Someone"
       const message = `${applicantName} applied to your job "${job.title}"`
       await prisma.notification.create({
@@ -40,9 +48,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     } catch (notifErr) {
       console.error("Failed to create notification:", notifErr)
     }
-
-    const updatedJob = await prisma.job.findUnique({ where: { id: jobId } })
-    if (!updatedJob) return NextResponse.json({ error: "Job not found" }, { status: 404 })
 
     const serialized = {
       ...updatedJob,

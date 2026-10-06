@@ -15,19 +15,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Endorsement text required" }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { id }, select: { endorsements: true } })
+    const user = await prisma.user.findUnique({ where: { id }, select: { id: true } })
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-    const current = (user.endorsements as any[]) || []
-    await prisma.user.update({
-      where: { id },
-      data: {
-        endorsements: [
-          ...current,
-          { from: fromUserId, text: text.trim(), createdAt: new Date().toISOString() },
-        ],
-      },
+    // Atomic jsonb append (single UPDATE) — concurrent endorsements don't
+    // overwrite each other the way read-then-set does.
+    const entry = JSON.stringify({
+      from: fromUserId,
+      text: text.trim(),
+      createdAt: new Date().toISOString(),
     })
+    await prisma.$executeRaw`
+      UPDATE "User"
+      SET "endorsements" = COALESCE("endorsements", '[]'::jsonb) || ${entry}::jsonb
+      WHERE "id" = ${id}
+    `
 
     return NextResponse.json({ ok: true })
   } catch (e) {

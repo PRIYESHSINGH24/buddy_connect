@@ -160,6 +160,8 @@ services:
     container_name: buddy-connect-postgres
     ports:
       - "5432:5432"
+    # More headroom for concurrent app connections (default max_connections=100)
+    command: ["postgres", "-c", "max_connections=200"]
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-buddy}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-buddy123}

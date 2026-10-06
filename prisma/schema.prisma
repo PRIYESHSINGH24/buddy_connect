@@ -52,6 +52,7 @@ model User {
   messagesReceived  Message[]       @relation("MsgTo")
 
   @@index([createdAt])
+  @@index([name]) // users list: ORDER BY name + cursor pagination
 }
 
 // ─── Feed ────────────────────────────────────────────────────────────
@@ -86,6 +87,7 @@ model Comment {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([postId, createdAt])
+  @@index([userId])
 }
 
 // ─── Projects ────────────────────────────────────────────────────────

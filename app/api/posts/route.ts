@@ -20,52 +20,64 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const dbStart = performance.now()
-    const posts = await prisma.post.findMany({
-      where: query,
-      orderBy: { createdAt: "desc" },
-      take: limit + 1,
-      select: {
-        id: true,
-        userId: true,
-        author: true,
-        authorImage: true,
-        content: true,
-        image: true,
-        attachments: true,
-        likes: true,
-        comments: {
-          orderBy: { createdAt: "asc" },
-          take: 5, // Only fetch first 5 comments
-          select: { id: true, userId: true, author: true, content: true, createdAt: true },
+    const fetchPage = async () => {
+      const dbStart = performance.now()
+      const posts = await prisma.post.findMany({
+        where: query,
+        orderBy: { createdAt: "desc" },
+        take: limit + 1,
+        select: {
+          id: true,
+          userId: true,
+          author: true,
+          authorImage: true,
+          content: true,
+          image: true,
+          attachments: true,
+          likes: true,
+          comments: {
+            orderBy: { createdAt: "asc" },
+            take: 5, // Only fetch first 5 comments
+            select: { id: true, userId: true, author: true, content: true, createdAt: true },
+          },
+          createdAt: true,
         },
-        createdAt: true,
-      },
-    })
-    const dbDuration = performance.now() - dbStart
+      })
+      const dbDuration = performance.now() - dbStart
 
-    // Serialize so the client receives simple JSON (frontend contract uses `_id`)
-    const serialized = posts.slice(0, limit).map((p) => ({
-      ...p,
-      _id: p.id,
-      id: undefined,
-      likes: p.likes || [],
-      comments: (p.comments || []).map((c) => ({
-        ...c,
-        _id: c.id,
+      // Serialize so the client receives simple JSON (frontend contract uses `_id`)
+      const serialized = posts.slice(0, limit).map((p) => ({
+        ...p,
+        _id: p.id,
         id: undefined,
-        createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
-      })),
-      attachments: (p.attachments as any[] | null) || [],
-      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : null,
-    }))
+        likes: p.likes || [],
+        comments: (p.comments || []).map((c) => ({
+          ...c,
+          _id: c.id,
+          id: undefined,
+          createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
+        })),
+        attachments: (p.attachments as any[] | null) || [],
+        createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : null,
+      }))
 
-    const hasMore = posts.length > limit
-    const nextCursor = serialized.length > 0 ? serialized[serialized.length - 1].createdAt : null
+      const hasMore = posts.length > limit
+      const nextCursor = serialized.length > 0 ? serialized[serialized.length - 1].createdAt : null
+      console.log(`[GET /api/posts] db: ${dbDuration.toFixed(2)}ms, ${serialized.length} posts`)
+
+      return { posts: serialized, nextCursor, hasMore }
+    }
+
+    // Hottest endpoint: serve the first page from Redis (30s) so N concurrent
+    // users don't all hit Postgres. Writes invalidate via cacheDeletePattern.
+    const result = before
+      ? await fetchPage()
+      : await cacheFetch(`posts:firstpage:${limit}`, 30, fetchPage)
+
     const duration = performance.now() - start
-    console.log(`[GET /api/posts] ${duration.toFixed(2)}ms (db: ${dbDuration.toFixed(2)}ms), ${serialized.length} posts`)
+    console.log(`[GET /api/posts] ${duration.toFixed(2)}ms, ${result.posts.length} posts`)
 
-    return NextResponse.json({ posts: serialized, nextCursor, hasMore }, {
+    return NextResponse.json(result, {
       status: 200,
       headers: {
         "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",

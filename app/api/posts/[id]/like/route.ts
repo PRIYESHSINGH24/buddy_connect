@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { cacheDeletePattern } from "@/lib/redis"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> } | any) {
   try {
@@ -14,26 +15,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const resolvedParams = params && typeof params.then === "function" ? await params : params
     const postId = resolvedParams.id as string
 
-    const post = await prisma.post.findUnique({ where: { id: postId } })
-    if (!post) {
+    // Atomic toggle in a single UPDATE: concurrent likes from different users
+    // serialize on the row lock instead of overwriting each other (read-modify-write race).
+    const rows = await prisma.$queryRaw<{ likes: string[] }[]>`
+      UPDATE "Post"
+      SET "likes" = CASE
+        WHEN "likes" @> ARRAY[${userId}]::text[] THEN array_remove("likes", ${userId})
+        ELSE array_append("likes", ${userId})
+      END
+      WHERE "id" = ${postId}
+      RETURNING "likes"
+    `
+
+    if (rows.length === 0) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 })
     }
 
-    const isLiked = (post.likes || []).includes(userId)
+    const likes = rows[0].likes || []
 
-    // Toggle like (read-modify-write on the likes array)
-    const updated = await prisma.post.update({
-      where: { id: postId },
-      data: {
-        likes: isLiked
-          ? { set: post.likes.filter((id) => id !== userId) }
-          : { push: userId },
-      },
-      select: { likes: true },
-    })
-
-    // Return updated likes as strings so client can update UI without refetch
-    const likes = updated.likes || []
+    // Feed payload embeds likes — drop the cached first page
+    cacheDeletePattern("posts:firstpage*").catch(() => {})
 
     return NextResponse.json({ message: "Like toggled successfully", likes }, { status: 200 })
   } catch (error) {
