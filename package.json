@@ -1,6 +1,10 @@
 {
   "name": "buddy-connect",
   "version": "0.1.0",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.11.0"
+  },
   "private": true,
   "scripts": {
     "build": "next build",
